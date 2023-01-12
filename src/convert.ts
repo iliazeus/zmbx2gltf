@@ -6,22 +6,21 @@ import { GltfBuilder } from "./gltf-builder";
 
 import * as assert from "assert/strict";
 
-const arrayToDataUrl = (mime: string, array: { buffer: ArrayBufferLike }): string =>
+const arrayToDataUri = (mime: string, array: { buffer: ArrayBufferLike }): string =>
   `data:${mime};base64,${Buffer.from(array.buffer).toString("base64")}`;
 
-const parseFaceFlags = (flags: number) => ({
-  isQuad: Boolean(flags & Mbx.FaceFlags.QUAD),
-  hasMaterial: Boolean(flags & Mbx.FaceFlags.MATERIALS),
-  hasUvs: Boolean(flags & Mbx.FaceFlags.UVS),
-  hasNormals: Boolean(flags & Mbx.FaceFlags.NORMALS),
-  hasColors: Boolean(flags & Mbx.FaceFlags.COLORS),
-});
-
 const convertGeometry = (mbx: Mbx.Geometry) => {
-  // TODO: indexed geometry?
+  const headFlags = {
+    isQuad: Boolean(mbx.faces[0] & Mbx.FaceFlags.QUAD),
+    hasMaterial: Boolean(mbx.faces[0] & Mbx.FaceFlags.MATERIALS),
+    hasUvs: Boolean(mbx.faces[0] & Mbx.FaceFlags.UVS),
+    hasNormals: Boolean(mbx.faces[0] & Mbx.FaceFlags.NORMALS),
+    hasColors: Boolean(mbx.faces[0] & Mbx.FaceFlags.COLORS),
+  };
 
-  const positions: number[] = [];
-  const normals: number[] = [];
+  const indices: number[] = [];
+  const positions = new Float32Array(mbx.vertices);
+  const normals = headFlags.hasNormals ? new Float32Array(positions.length) : undefined;
 
   const uvLayerCount = mbx.uvs?.length ?? 0;
 
@@ -40,28 +39,8 @@ const convertGeometry = (mbx: Mbx.Geometry) => {
     if (flags.isQuad) {
       off += 1;
 
-      positions.push(
-        mbx.vertices[mbx.faces[off + 0] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 0] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 0] * 3 + 2],
-        mbx.vertices[mbx.faces[off + 1] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 1] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 1] * 3 + 2],
-        mbx.vertices[mbx.faces[off + 2] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 2] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 2] * 3 + 2]
-      );
-      positions.push(
-        mbx.vertices[mbx.faces[off + 2] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 2] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 2] * 3 + 2],
-        mbx.vertices[mbx.faces[off + 3] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 3] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 3] * 3 + 2],
-        mbx.vertices[mbx.faces[off + 0] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 0] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 0] * 3 + 2]
-      );
+      indices.push(mbx.faces[off + 0], mbx.faces[off + 1], mbx.faces[off + 2]);
+      indices.push(mbx.faces[off + 2], mbx.faces[off + 3], mbx.faces[off + 0]);
       off += 4;
 
       if (flags.hasMaterial) {
@@ -73,28 +52,26 @@ const convertGeometry = (mbx: Mbx.Geometry) => {
       }
 
       if (flags.hasNormals) {
-        normals.push(
-          mbx.normals[mbx.faces[off + 0] * 3 + 0],
-          mbx.normals[mbx.faces[off + 0] * 3 + 1],
-          mbx.normals[mbx.faces[off + 0] * 3 + 2],
-          mbx.normals[mbx.faces[off + 1] * 3 + 0],
-          mbx.normals[mbx.faces[off + 1] * 3 + 1],
-          mbx.normals[mbx.faces[off + 1] * 3 + 2],
-          mbx.normals[mbx.faces[off + 2] * 3 + 0],
-          mbx.normals[mbx.faces[off + 2] * 3 + 1],
-          mbx.normals[mbx.faces[off + 2] * 3 + 2]
-        );
-        normals.push(
-          mbx.normals[mbx.faces[off + 2] * 3 + 0],
-          mbx.normals[mbx.faces[off + 2] * 3 + 1],
-          mbx.normals[mbx.faces[off + 2] * 3 + 2],
-          mbx.normals[mbx.faces[off + 3] * 3 + 0],
-          mbx.normals[mbx.faces[off + 3] * 3 + 1],
-          mbx.normals[mbx.faces[off + 3] * 3 + 2],
-          mbx.normals[mbx.faces[off + 0] * 3 + 0],
-          mbx.normals[mbx.faces[off + 0] * 3 + 1],
-          mbx.normals[mbx.faces[off + 0] * 3 + 2]
-        );
+        normals![indices[indices.length - 6] * 3 + 0] = mbx.normals[mbx.faces[off + 0] * 3 + 0];
+        normals![indices[indices.length - 6] * 3 + 1] = mbx.normals[mbx.faces[off + 0] * 3 + 1];
+        normals![indices[indices.length - 6] * 3 + 2] = mbx.normals[mbx.faces[off + 0] * 3 + 2];
+        normals![indices[indices.length - 5] * 3 + 0] = mbx.normals[mbx.faces[off + 1] * 3 + 0];
+        normals![indices[indices.length - 5] * 3 + 1] = mbx.normals[mbx.faces[off + 1] * 3 + 1];
+        normals![indices[indices.length - 5] * 3 + 2] = mbx.normals[mbx.faces[off + 1] * 3 + 2];
+        normals![indices[indices.length - 4] * 3 + 0] = mbx.normals[mbx.faces[off + 2] * 3 + 0];
+        normals![indices[indices.length - 4] * 3 + 1] = mbx.normals[mbx.faces[off + 2] * 3 + 1];
+        normals![indices[indices.length - 4] * 3 + 2] = mbx.normals[mbx.faces[off + 2] * 3 + 2];
+
+        normals![indices[indices.length - 3] * 3 + 0] = mbx.normals[mbx.faces[off + 2] * 3 + 0];
+        normals![indices[indices.length - 3] * 3 + 1] = mbx.normals[mbx.faces[off + 2] * 3 + 1];
+        normals![indices[indices.length - 3] * 3 + 2] = mbx.normals[mbx.faces[off + 2] * 3 + 2];
+        normals![indices[indices.length - 2] * 3 + 0] = mbx.normals[mbx.faces[off + 3] * 3 + 0];
+        normals![indices[indices.length - 2] * 3 + 1] = mbx.normals[mbx.faces[off + 3] * 3 + 1];
+        normals![indices[indices.length - 2] * 3 + 2] = mbx.normals[mbx.faces[off + 3] * 3 + 2];
+        normals![indices[indices.length - 1] * 3 + 0] = mbx.normals[mbx.faces[off + 0] * 3 + 0];
+        normals![indices[indices.length - 1] * 3 + 1] = mbx.normals[mbx.faces[off + 0] * 3 + 1];
+        normals![indices[indices.length - 1] * 3 + 2] = mbx.normals[mbx.faces[off + 0] * 3 + 2];
+
         off += 4;
       }
 
@@ -104,17 +81,7 @@ const convertGeometry = (mbx: Mbx.Geometry) => {
     } else {
       off += 1;
 
-      positions.push(
-        mbx.vertices[mbx.faces[off + 0] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 0] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 0] * 3 + 2],
-        mbx.vertices[mbx.faces[off + 1] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 1] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 1] * 3 + 2],
-        mbx.vertices[mbx.faces[off + 2] * 3 + 0],
-        mbx.vertices[mbx.faces[off + 2] * 3 + 1],
-        mbx.vertices[mbx.faces[off + 2] * 3 + 2]
-      );
+      indices.push(mbx.faces[off + 0], mbx.faces[off + 1], mbx.faces[off + 2]);
       off += 3;
 
       if (flags.hasMaterial) {
@@ -126,17 +93,15 @@ const convertGeometry = (mbx: Mbx.Geometry) => {
       }
 
       if (flags.hasNormals) {
-        normals.push(
-          mbx.normals[mbx.faces[off + 0] * 3 + 0],
-          mbx.normals[mbx.faces[off + 0] * 3 + 1],
-          mbx.normals[mbx.faces[off + 0] * 3 + 2],
-          mbx.normals[mbx.faces[off + 1] * 3 + 0],
-          mbx.normals[mbx.faces[off + 1] * 3 + 1],
-          mbx.normals[mbx.faces[off + 1] * 3 + 2],
-          mbx.normals[mbx.faces[off + 2] * 3 + 0],
-          mbx.normals[mbx.faces[off + 2] * 3 + 1],
-          mbx.normals[mbx.faces[off + 2] * 3 + 2]
-        );
+        normals![indices[indices.length - 3] * 3 + 0] = mbx.normals[mbx.faces[off + 0] * 3 + 0];
+        normals![indices[indices.length - 3] * 3 + 1] = mbx.normals[mbx.faces[off + 0] * 3 + 1];
+        normals![indices[indices.length - 3] * 3 + 2] = mbx.normals[mbx.faces[off + 0] * 3 + 2];
+        normals![indices[indices.length - 2] * 3 + 0] = mbx.normals[mbx.faces[off + 1] * 3 + 0];
+        normals![indices[indices.length - 2] * 3 + 1] = mbx.normals[mbx.faces[off + 1] * 3 + 1];
+        normals![indices[indices.length - 2] * 3 + 2] = mbx.normals[mbx.faces[off + 1] * 3 + 2];
+        normals![indices[indices.length - 1] * 3 + 0] = mbx.normals[mbx.faces[off + 2] * 3 + 0];
+        normals![indices[indices.length - 1] * 3 + 1] = mbx.normals[mbx.faces[off + 2] * 3 + 1];
+        normals![indices[indices.length - 1] * 3 + 2] = mbx.normals[mbx.faces[off + 2] * 3 + 2];
         off += 3;
       }
 
@@ -147,8 +112,9 @@ const convertGeometry = (mbx: Mbx.Geometry) => {
   }
 
   return {
-    positionsArray: new Float32Array(positions),
-    normalsArray: normals.length > 0 ? new Float32Array(normals) : undefined,
+    indicesArray: new Uint16Array(indices),
+    positionsArray: positions,
+    normalsArray: normals,
   };
 };
 
@@ -162,7 +128,7 @@ export function convertMbxToGltf(
   const builder = new GltfBuilder();
 
   for (let [path, geometry] of extractor.getGeometries()) {
-    const { positionsArray, normalsArray } = convertGeometry(geometry);
+    const { indicesArray, positionsArray, normalsArray } = convertGeometry(geometry);
 
     const positionMin = [positionsArray[0], positionsArray[1], positionsArray[2]];
     const positionMax = [positionsArray[0], positionsArray[1], positionsArray[2]];
@@ -181,6 +147,27 @@ export function convertMbxToGltf(
       name: path,
       primitives: [
         {
+          indices: builder.addAccessor(path + "/faces", {
+            name: path + "/faces",
+            byteOffset: 0,
+            count: indicesArray.length,
+            type: "SCALAR",
+            componentType: Gltf.Const.U16,
+
+            bufferView: builder.addBufferView(path + "/faces", {
+              name: path + "/faces",
+              byteOffset: 0,
+              byteLength: indicesArray.byteLength,
+              target: Gltf.Const.ELEMENT_ARRAY_BUFFER,
+
+              buffer: builder.addBuffer(path + "/faces", {
+                name: path + "/faces",
+                byteLength: indicesArray.byteLength,
+                uri: arrayToDataUri("application/octet-stream", indicesArray),
+              }),
+            }),
+          }),
+
           attributes: {
             POSITION: builder.addAccessor(path + "/vertices", {
               name: path + "/vertices",
@@ -200,7 +187,7 @@ export function convertMbxToGltf(
                 buffer: builder.addBuffer(path + "/vertices", {
                   name: path + "/vertices",
                   byteLength: positionsArray.byteLength,
-                  uri: arrayToDataUrl("application/octet-stream", positionsArray),
+                  uri: arrayToDataUri("application/octet-stream", positionsArray),
                 }),
               }),
             }),
@@ -223,7 +210,7 @@ export function convertMbxToGltf(
                   buffer: builder.addBuffer(path + "/normals", {
                     name: path + "/normals",
                     byteLength: normalsArray.byteLength,
-                    uri: arrayToDataUrl("application/octet-stream", normalsArray),
+                    uri: arrayToDataUri("application/octet-stream", normalsArray),
                   }),
                 }),
               }),
