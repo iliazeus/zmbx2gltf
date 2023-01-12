@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+try {
+  require("source-map-support/register");
+} catch (error) {}
+
 import { program } from "commander";
 import * as unzipper from "unzipper";
 
@@ -26,7 +30,7 @@ program
       }
     );
 
-    const gltf = convertMbxToGltf(mbx);
+    const gltf = convertMbxToGltf(mbx, { paranoid: true });
 
     await writeFile(outputFile, JSON.stringify(gltf), "utf-8");
   });

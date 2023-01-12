@@ -97,7 +97,7 @@ export namespace Mbx {
     vertices: Vector3Array;
     faces: number[];
     normals: Vector3Array;
-    uvs?: Vector3Array[]; // TODO
+    uvs?: number[][]; // TODO
   }
 
   export const enum FaceFlags {

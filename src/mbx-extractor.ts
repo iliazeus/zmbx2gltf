@@ -55,4 +55,12 @@ export class MbxExtractor {
       yield [`#/details/pins/${index}`, geometry];
     }
   }
+
+  *getConfigurations(): Iterable<[string, Mbx.Configuration]> {
+    for (const [index, pack] of Object.entries(this.file.configurations)) {
+      for (const [name, config] of Object.entries(pack)) {
+        yield [`#/configurations/${index}/${name}`, config];
+      }
+    }
+  }
 }

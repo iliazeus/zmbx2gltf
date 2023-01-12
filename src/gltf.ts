@@ -6,7 +6,6 @@ export namespace Gltf {
   export type Vector4 = number[];
 
   export type Uri = string;
-  export type DataUri = string;
 
   export const enum Const {
     I8 = 5120,
@@ -70,8 +69,8 @@ export namespace Gltf {
     name?: string;
     children?: Index<Node>[];
     matrix?: Matrix4x4;
-    translation?: Vector4;
-    scale?: Vector4;
+    translation?: Vector3;
+    scale?: Vector3;
     rotation?: Vector4;
     mesh?: Index<Mesh>;
     weights?: number[];
@@ -82,7 +81,6 @@ export namespace Gltf {
     name?: string;
     byteLength: number;
     uri?: Uri;
-    data?: DataUri;
   }
 
   export interface BufferView {
@@ -152,7 +150,6 @@ export namespace Gltf {
   export interface Image {
     name?: string;
     uri?: Uri;
-    data?: DataUri;
     bufferView?: Index<BufferView>;
     mimeType?: string;
   }
