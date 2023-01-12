@@ -89,7 +89,7 @@ export namespace Gltf {
     byteLength: number;
     byteOffset: number;
     byteStride?: number;
-    target: Const.ARRAY_BUFFER | Const.ELEMENT_ARRAY_BUFFER;
+    target?: Const.ARRAY_BUFFER | Const.ELEMENT_ARRAY_BUFFER;
   }
 
   export interface Accessor {

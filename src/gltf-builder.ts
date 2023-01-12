@@ -14,13 +14,13 @@ const setStrict = <K, V>(map: Map<K, V>, key: K, value: V): void => {
 export class GltfBuilder {
   private _file!: Gltf.File;
 
-  private _imageIndexes!: Map<string, number>;
-  private _bufferIndexes!: Map<string, number>;
-  private _bufferViewIndexes!: Map<string, number>;
-  private _accessorIndexes!: Map<string, number>;
-  private _meshIndexes!: Map<string, number>;
-  private _nodeIndexes!: Map<string, number>;
-  private _sceneIndexes!: Map<string, number>;
+  private _imageIndices!: Map<string, number>;
+  private _bufferIndices!: Map<string, number>;
+  private _bufferViewIndices!: Map<string, number>;
+  private _accessorIndices!: Map<string, number>;
+  private _meshIndices!: Map<string, number>;
+  private _nodeIndices!: Map<string, number>;
+  private _sceneIndices!: Map<string, number>;
 
   constructor() {
     this.reset();
@@ -29,13 +29,13 @@ export class GltfBuilder {
   reset(): void {
     this._file = { asset: { version: "2.0" } };
 
-    this._imageIndexes = new Map();
-    this._bufferIndexes = new Map();
-    this._bufferViewIndexes = new Map();
-    this._accessorIndexes = new Map();
-    this._meshIndexes = new Map();
-    this._nodeIndexes = new Map();
-    this._sceneIndexes = new Map();
+    this._imageIndices = new Map();
+    this._bufferIndices = new Map();
+    this._bufferViewIndices = new Map();
+    this._accessorIndices = new Map();
+    this._meshIndices = new Map();
+    this._nodeIndices = new Map();
+    this._sceneIndices = new Map();
   }
 
   build(): Gltf.File {
@@ -53,85 +53,85 @@ export class GltfBuilder {
   }
 
   getImageIndex(key: string): Gltf.Index<Gltf.Image> {
-    return getStrict(this._imageIndexes, key);
+    return getStrict(this._imageIndices, key);
   }
 
   addImage(key: string, image: Gltf.Image): Gltf.Index<Gltf.Image> {
     this._file.images ??= [];
     const index = this._file.images.length;
-    setStrict(this._imageIndexes, key, index);
+    setStrict(this._imageIndices, key, index);
     this._file.images.push(image);
     return index;
   }
 
   getBufferIndex(key: string): Gltf.Index<Gltf.Buffer> {
-    return getStrict(this._bufferIndexes, key);
+    return getStrict(this._bufferIndices, key);
   }
 
   addBuffer(key: string, buffer: Gltf.Buffer): Gltf.Index<Gltf.Buffer> {
     this._file.buffers ??= [];
     const index = this._file.buffers.length;
-    setStrict(this._bufferIndexes, key, index);
+    setStrict(this._bufferIndices, key, index);
     this._file.buffers.push(buffer);
     return index;
   }
 
   getBufferViewIndex(key: string): Gltf.Index<Gltf.BufferView> {
-    return getStrict(this._bufferViewIndexes, key);
+    return getStrict(this._bufferViewIndices, key);
   }
 
   addBufferView(key: string, bufferView: Gltf.BufferView): Gltf.Index<Gltf.BufferView> {
     this._file.bufferViews ??= [];
     const index = this._file.bufferViews.length;
-    setStrict(this._bufferViewIndexes, key, index);
+    setStrict(this._bufferViewIndices, key, index);
     this._file.bufferViews.push(bufferView);
     return index;
   }
 
   getAccessorIndex(key: string): Gltf.Index<Gltf.Accessor> {
-    return getStrict(this._accessorIndexes, key);
+    return getStrict(this._accessorIndices, key);
   }
 
   addAccessor(key: string, accessor: Gltf.Accessor): Gltf.Index<Gltf.Accessor> {
     this._file.accessors ??= [];
     const index = this._file.accessors.length;
-    setStrict(this._accessorIndexes, key, index);
+    setStrict(this._accessorIndices, key, index);
     this._file.accessors.push(accessor);
     return index;
   }
 
   getMeshIndex(key: string): Gltf.Index<Gltf.Mesh> {
-    return getStrict(this._meshIndexes, key);
+    return getStrict(this._meshIndices, key);
   }
 
   addMesh(key: string, mesh: Gltf.Mesh): Gltf.Index<Gltf.Mesh> {
     this._file.meshes ??= [];
     const index = this._file.meshes.length;
-    setStrict(this._meshIndexes, key, index);
+    setStrict(this._meshIndices, key, index);
     this._file.meshes.push(mesh);
     return index;
   }
 
   getNodeIndex(key: string): Gltf.Index<Gltf.Node> {
-    return getStrict(this._nodeIndexes, key);
+    return getStrict(this._nodeIndices, key);
   }
 
   addNode(key: string, node: Gltf.Node): Gltf.Index<Gltf.Node> {
     this._file.nodes ??= [];
     const index = this._file.nodes.length;
-    setStrict(this._nodeIndexes, key, index);
+    setStrict(this._nodeIndices, key, index);
     this._file.nodes.push(node);
     return index;
   }
 
   getSceneIndex(key: string): Gltf.Index<Gltf.Scene> {
-    return getStrict(this._sceneIndexes, key);
+    return getStrict(this._sceneIndices, key);
   }
 
   addScene(key: string, scene: Gltf.Scene): Gltf.Index<Gltf.Scene> {
     this._file.scenes ??= [];
     const index = this._file.scenes.length;
-    setStrict(this._sceneIndexes, key, index);
+    setStrict(this._sceneIndices, key, index);
     this._file.scenes.push(scene);
     return index;
   }
