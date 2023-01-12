@@ -9,6 +9,14 @@ import * as assert from "assert/strict";
 const arrayToDataUri = (mime: string, array: { buffer: ArrayBufferLike }): string =>
   `data:${mime};base64,${Buffer.from(array.buffer).toString("base64")}`;
 
+// prettier-ignore
+const transpose = (m: Gltf.Matrix4x4) => [
+  m[0], m[4], m[8], m[12],
+  m[1], m[5], m[9], m[13],
+  m[2], m[6], m[10], m[14],
+  m[3], m[7], m[11], m[15],
+];
+
 const convertGeometry = (mbx: Mbx.Geometry) => {
   const headFlags = {
     isQuad: Boolean(mbx.faces[0] & Mbx.FaceFlags.QUAD),
@@ -220,25 +228,39 @@ export function convertMbxToGltf(
     });
   }
 
-  const nodeIndices: Gltf.Index<Gltf.Node>[] = [];
+  const rootNodeIndices: Gltf.Index<Gltf.Node>[] = [];
 
-  for (const [path, config] of extractor.getConfigurations()) {
-    for (const [i, point] of config.points.entries()) {
-      nodeIndices.push(
-        builder.addNode(path + `/points/${i}`, {
-          name: path + `/points/${i}`,
-          translation: point.transform.position,
-          // TODO!
-          mesh: builder.getMeshIndex(`#/geometries/${config.version}/${config.geometry.file}`),
+  for (const [partPath, part] of extractor.getParts()) {
+    const config = mbx.configurations[part.version][part.configuration];
+
+    const extraNodeIndices: Gltf.Index<Gltf.Node>[] = [];
+
+    for (const [extraId, extra] of extractor.getConfigurationExtras(config)) {
+      extraNodeIndices.push(
+        builder.addNode(partPath + `/geometry/extras` + extraId, {
+          name: partPath + `/geometry/extras` + extraId,
+          translation: extra.transform.position,
+          rotation: extra.transform.quaternion,
+          // TODO: this is a hack
+          mesh: builder.getMeshIndex("#/details/" + extraId.split("/")[1] + "/" + extra.type),
         })
       );
     }
+
+    rootNodeIndices.push(
+      builder.addNode(partPath, {
+        name: partPath,
+        matrix: transpose(part.matrix),
+        mesh: builder.getMeshIndex(`#/geometries/${config.version}/${config.geometry.file}`),
+        children: extraNodeIndices,
+      })
+    );
   }
 
   builder.setMainScene(
     builder.addScene("#", {
       name: "#",
-      nodes: nodeIndices,
+      nodes: rootNodeIndices,
     })
   );
 

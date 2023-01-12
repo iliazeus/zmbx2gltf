@@ -36,12 +36,6 @@ export class MbxExtractor {
   }
 
   *getGeometries(): Iterable<[string, Mbx.Geometry]> {
-    for (const [index, pack] of Object.entries(this.file.geometries)) {
-      for (const [name, geometry] of Object.entries(pack)) {
-        yield [`#/geometries/${index}/${name}`, geometry];
-      }
-    }
-
     for (const [index, geometry] of Object.entries(this.file.details.logos)) {
       yield [`#/details/logos/${index}`, geometry];
     }
@@ -54,6 +48,12 @@ export class MbxExtractor {
     for (const [index, geometry] of Object.entries(this.file.details.pins)) {
       yield [`#/details/pins/${index}`, geometry];
     }
+
+    for (const [index, pack] of Object.entries(this.file.geometries)) {
+      for (const [name, geometry] of Object.entries(pack)) {
+        yield [`#/geometries/${index}/${name}`, geometry];
+      }
+    }
   }
 
   *getConfigurations(): Iterable<[string, Mbx.Configuration]> {
@@ -61,6 +61,27 @@ export class MbxExtractor {
       for (const [name, config] of Object.entries(pack)) {
         yield [`#/configurations/${index}/${name}`, config];
       }
+    }
+  }
+
+  *getConfigurationExtras(config: Mbx.Configuration): Iterable<[string, Mbx.ConfigurationExtra]> {
+    for (const [i, extra] of config.geometry.extras.logos.entries()) {
+      yield [`/logos/${i}`, extra];
+    }
+    for (const [i, extra] of config.geometry.extras.knobs.entries()) {
+      yield [`/knobs/${i}`, extra];
+    }
+    for (const [i, extra] of config.geometry.extras.pins.entries()) {
+      yield [`/pins/${i}`, extra];
+    }
+    for (const [i, extra] of config.geometry.extras.tubes.entries()) {
+      yield [`/tubes/${i}`, extra];
+    }
+  }
+
+  *getParts(): Iterable<[string, Mbx.Part]> {
+    for (const [i, part] of this.file.parts.entries()) {
+      yield [`#/parts/${i}`, part];
     }
   }
 }
