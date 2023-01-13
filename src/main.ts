@@ -30,7 +30,7 @@ program
       }
     );
 
-    const gltf = convertMbxToGltf(mbx, { paranoid: true });
+    const gltf = convertMbxToGltf(mbx);
 
     await writeFile(outputFile, JSON.stringify(gltf), "utf-8");
   });

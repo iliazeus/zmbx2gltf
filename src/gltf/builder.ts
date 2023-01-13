@@ -2,12 +2,12 @@ import { Gltf } from "./types";
 
 const getStrict = <K, V>(map: Map<K, V>, key: K): V => {
   const value = map.get(key);
-  if (value === undefined) throw new RangeError();
+  if (value === undefined) throw new RangeError(String(key));
   return value;
 };
 
 const setStrict = <K, V>(map: Map<K, V>, key: K, value: V): void => {
-  if (map.has(key)) throw new RangeError();
+  if (map.has(key)) throw new RangeError(String(key));
   map.set(key, value);
 };
 
@@ -86,6 +86,10 @@ export class GltfBuilder {
     setStrict(this._bufferViewIndices, key, index);
     this._file.bufferViews.push(bufferView);
     return index;
+  }
+
+  tryGetAccessorIndex(key: string): Gltf.Index<Gltf.Accessor> | undefined {
+    return this._accessorIndices.get(key);
   }
 
   getAccessorIndex(key: string): Gltf.Index<Gltf.Accessor> {
