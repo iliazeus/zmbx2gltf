@@ -8,42 +8,56 @@ export const convertMaterial = (
   const key = `#/materials/${id}`;
   if (gltf.hasMaterial(key)) return gltf.getMaterialIndex(key);
 
-  const color = colors.find((x) => x.legoId === id);
+  const color = colors[id];
   if (!color) {
     console.warn("material not found: " + id);
     return undefined;
   }
 
-  switch (color.material) {
-    case "Solid":
+  switch (color.type) {
+    case "solid":
       return gltf.addMaterial(key, {
-        name: color.legoName,
+        name: color.name,
         pbrMetallicRoughness: {
-          baseColorFactor: [color.r / 255, color.g / 255, color.b / 255, 1.0],
-          metallicFactor: 0.2,
-          roughnessFactor: 0.25,
+          baseColorFactor: color.color,
+          metallicFactor: 0.0,
+          roughnessFactor: 0.1,
+        },
+        extensions: {
+          KHR_materials_ior: {
+            ior: 1.54,
+          },
         },
       });
 
-    case "Transparent":
+    case "transparent":
       return gltf.addMaterial(key, {
-        name: color.legoName,
+        name: color.name,
         alphaMode: "BLEND",
-        doubleSided: true,
         pbrMetallicRoughness: {
-          baseColorFactor: [color.r / 255, color.g / 255, color.b / 255, 0.5],
-          metallicFactor: 0.4,
-          roughnessFactor: 0.25,
+          baseColorFactor: color.color,
+          metallicFactor: 0.0,
+          roughnessFactor: 0.0,
+        },
+        extensions: {
+          KHR_materials_ior: {
+            ior: 1.54,
+          },
         },
       });
 
-    case "Rubber":
+    case "rubber":
       return gltf.addMaterial(key, {
-        name: color.legoName,
+        name: color.name,
         pbrMetallicRoughness: {
-          baseColorFactor: [color.r / 255, color.g / 255, color.b / 255, 1.0],
-          metallicFactor: 0.1,
-          roughnessFactor: 0.6,
+          baseColorFactor: color.color,
+          metallicFactor: 0.0,
+          roughnessFactor: 0.75,
+        },
+        extensions: {
+          KHR_materials_ior: {
+            ior: 1.5,
+          },
         },
       });
 

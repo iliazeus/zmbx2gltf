@@ -50,6 +50,11 @@ export class GltfBuilder {
     Object.assign(this._file.asset, metadata);
   }
 
+  useExtension(extension: string): void {
+    this._file.extensionsUsed ??= [];
+    this._file.extensionsUsed.push(extension);
+  }
+
   setMainScene(index: Gltf.Index<Gltf.Scene>): void {
     this._file.scene = index;
   }

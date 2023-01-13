@@ -35,6 +35,7 @@ export namespace Gltf {
 
   export interface File {
     asset: Asset;
+    extensionsUsed?: string[];
     scenes?: Scene[];
     scene?: Index<Scene>;
     nodes?: Node[];
@@ -195,6 +196,12 @@ export namespace Gltf {
 
     alphaMode?: "OPAQUE" | "MASK" | "BLEND";
     doubleSided?: boolean;
+
+    extensions?: {
+      KHR_materials_ior?: {
+        ior?: number;
+      },
+    };
   }
 
   export interface TextureInfo {
