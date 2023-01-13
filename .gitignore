@@ -1,3 +1,7 @@
+*.zmbx
+*.mbx
+*.gltf
+
 # Logs
 logs
 *.log
