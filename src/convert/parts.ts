@@ -1,6 +1,8 @@
 import { Mbx } from "../mbx";
 import { Gltf, GltfBuilder } from "../gltf";
+
 import { transpose } from "./utils";
+import { convertMaterial } from "./materials";
 
 export const convertParts = (mbx: Mbx.File, gltf: GltfBuilder): void => {
   const partNodeIndices: Gltf.Index<Gltf.Node>[] = [];
@@ -22,8 +24,10 @@ const convertPart = (
   mbx: Mbx.File,
   gltf: GltfBuilder
 ): Gltf.Index<Gltf.Node> => {
+  const materialIndex = convertMaterial(part.material.base[0], gltf);
+
   const config = mbx.configurations[part.version][part.configuration]!;
-  const node = convertConfiguration(path, config, gltf);
+  const node = convertConfiguration(path, config, materialIndex, gltf);
 
   return gltf.addNode(node.name!, {
     ...node,
@@ -34,13 +38,14 @@ const convertPart = (
 const convertConfiguration = (
   partPath: string,
   config: Mbx.Configuration,
+  materialIndex: Gltf.Index<Gltf.Material> | undefined,
   gltf: GltfBuilder
 ): Gltf.Node => {
   const extraNodeIndices: Gltf.Index<Gltf.Node>[] = [];
 
   for (const [kind, extras] of Object.entries(config.geometry.extras)) {
     for (const [index, extra] of extras.entries()) {
-      const { node, mesh } = convertExtra(partPath, kind, index, extra, gltf);
+      const { node, mesh } = convertExtra(partPath, kind, index, extra, materialIndex, gltf);
 
       extraNodeIndices.push(
         gltf.addNode(node.name!, {
@@ -60,6 +65,7 @@ const convertConfiguration = (
       name: partPath + "#main",
       primitives: [
         {
+          material: materialIndex,
           indices: gltf.getAccessorIndex(mainGeometryPath + "#indices"),
           attributes: {
             POSITION: gltf.getAccessorIndex(mainGeometryPath + "#positions"),
@@ -76,6 +82,7 @@ const convertExtra = (
   kind: string,
   index: number,
   extra: Mbx.ConfigurationExtra,
+  materialIndex: Gltf.Index<Gltf.Material> | undefined,
   gltf: GltfBuilder
 ): {
   node: Gltf.Node;
@@ -90,6 +97,7 @@ const convertExtra = (
     name: partPath + `#extra/${kind}/${index}`,
     primitives: [
       {
+        material: materialIndex,
         indices: gltf.getAccessorIndex(`/details/${kind}/${extra.type}.json#indices`),
         attributes: {
           POSITION: gltf.getAccessorIndex(`/details/${kind}/${extra.type}.json#positions`),

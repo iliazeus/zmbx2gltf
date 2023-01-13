@@ -21,6 +21,7 @@ export class GltfBuilder {
   private _meshIndices!: Map<string, number>;
   private _nodeIndices!: Map<string, number>;
   private _sceneIndices!: Map<string, number>;
+  private _materialIndices!: Map<string, number>;
 
   constructor() {
     this.reset();
@@ -36,6 +37,7 @@ export class GltfBuilder {
     this._meshIndices = new Map();
     this._nodeIndices = new Map();
     this._sceneIndices = new Map();
+    this._materialIndices = new Map();
   }
 
   build(): Gltf.File {
@@ -137,6 +139,22 @@ export class GltfBuilder {
     const index = this._file.scenes.length;
     setStrict(this._sceneIndices, key, index);
     this._file.scenes.push(scene);
+    return index;
+  }
+
+  hasMaterial(key: string): boolean {
+    return this._materialIndices.has(key);
+  }
+
+  getMaterialIndex(key: string): Gltf.Index<Gltf.Material> {
+    return getStrict(this._materialIndices, key);
+  }
+
+  addMaterial(key: string, material: Gltf.Material): Gltf.Index<Gltf.Material> {
+    this._file.materials ??= [];
+    const index = this._file.materials.length;
+    setStrict(this._materialIndices, key, index);
+    this._file.materials.push(material);
     return index;
   }
 }
