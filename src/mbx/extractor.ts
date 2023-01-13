@@ -1,4 +1,4 @@
-import { Mbx } from "./mbx";
+import { Mbx } from "./types";
 
 export class MbxExtractor {
   constructor(readonly file: Mbx.File) {}

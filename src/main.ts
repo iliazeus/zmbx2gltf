@@ -11,7 +11,7 @@ import { createReadStream } from "fs";
 import { writeFile } from "fs/promises";
 import { pipeline } from "stream/promises";
 
-import { Mbx } from "./mbx";
+import { Mbx } from "./mbx/types";
 import { convertMbxToGltf } from "./convert";
 
 program

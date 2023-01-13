@@ -1,8 +1,5 @@
-import { Mbx } from "./mbx";
-import { MbxExtractor } from "./mbx-extractor";
-
-import { Gltf } from "./gltf";
-import { GltfBuilder } from "./gltf-builder";
+import { Mbx, MbxExtractor } from "./mbx";
+import { Gltf, GltfBuilder } from "./gltf";
 
 import * as assert from "assert/strict";
 

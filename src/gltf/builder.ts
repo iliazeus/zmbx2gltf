@@ -1,4 +1,4 @@
-import { Gltf } from "./gltf";
+import { Gltf } from "./types";
 
 const getStrict = <K, V>(map: Map<K, V>, key: K): V => {
   const value = map.get(key);
