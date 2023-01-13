@@ -4,10 +4,13 @@ import { Gltf, GltfBuilder } from "../gltf";
 import { toDataUri } from "./utils";
 
 import { Vertex, getVertices } from "./vertices";
+import { Options } from "./options";
 
-export const convertGeometries = (mbx: Mbx.File, gltf: GltfBuilder): void => {
-  for (const [index, geometry] of Object.entries(mbx.details.logos)) {
-    convertGeometry(`/details/logos/${index}.json`, geometry, gltf);
+export const convertGeometries = (mbx: Mbx.File, gltf: GltfBuilder, options: Options): void => {
+  if (options.logos) {
+    for (const [index, geometry] of Object.entries(mbx.details.logos)) {
+      convertGeometry(`/details/logos/${index}.json`, geometry, gltf);
+    }
   }
 
   for (const [index, geometry] of Object.entries(mbx.details.knobs)) {

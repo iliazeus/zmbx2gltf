@@ -3,15 +3,21 @@ import * as uuid from "uuid";
 import { Gltf, GltfBuilder } from "../gltf";
 import { Mbx } from "../mbx";
 import { colors } from "./data/colors";
+import { Options } from "./options";
 
 export const convertMaterial = (
   id: number,
   normals: Mbx.TextureRef[] | undefined,
-  gltf: GltfBuilder
+  decoration: Mbx.PartDecoration | undefined,
+  gltf: GltfBuilder,
+  options: Options
 ): Gltf.Index<Gltf.Material> | undefined => {
   normals ??= [];
+  decoration ??= {};
 
-  const isSimple = normals.length === 0;
+  const isSimple =
+    (!options.normalMaps || normals.length === 0) &&
+    (!options.decals || Object.keys(decoration).length === 0);
 
   const key = `/materials/${isSimple ? id : uuid.v4()}`;
 
@@ -33,11 +39,6 @@ export const convertMaterial = (
           metallicFactor: 0.0,
           roughnessFactor: 0.1,
         },
-        extensions: {
-          KHR_materials_ior: {
-            ior: 1.54,
-          },
-        },
       };
       break;
 
@@ -50,11 +51,6 @@ export const convertMaterial = (
           metallicFactor: 0.0,
           roughnessFactor: 0.0,
         },
-        extensions: {
-          KHR_materials_ior: {
-            ior: 1.54,
-          },
-        },
       };
       break;
 
@@ -66,11 +62,6 @@ export const convertMaterial = (
           metallicFactor: 0.0,
           roughnessFactor: 0.75,
         },
-        extensions: {
-          KHR_materials_ior: {
-            ior: 1.5,
-          },
-        },
       };
       break;
 
@@ -81,14 +72,31 @@ export const convertMaterial = (
 
   if (!material) return undefined;
 
-  if (normals[0]) {
+  if (options.decals && decoration.uv && decoration.color) {
+    delete material.pbrMetallicRoughness!.baseColorFactor;
+
+    material.pbrMetallicRoughness!.baseColorTexture = {
+      texCoord: decoration.uv,
+      index: gltf.addTexture(key + "#color", {
+        name: key + "#color",
+        source: gltf.getImageIndex(`/textures/color/${decoration.color.name}`),
+        sampler: gltf.addSampler(key + "#color", {
+          name: key + "#color",
+          wrapS: Gltf.Const.CLAMP_TO_EDGE,
+          wrapT: Gltf.Const.CLAMP_TO_EDGE,
+        }),
+      }),
+    };
+  }
+
+  if (options.normalMaps && normals[0]) {
     material.normalTexture = {
       texCoord: normals[0].uv,
-      index: gltf.addTexture(key, {
-        name: key,
+      index: gltf.addTexture(key + "#normals", {
+        name: key + "#normals",
         source: gltf.getImageIndex(`/textures/normal/${normals[0].file}`),
-        sampler: gltf.addSampler(key, {
-          name: key,
+        sampler: gltf.addSampler(key + "#normals", {
+          name: key + "#normals",
           wrapS: normals[0].repeat ? Gltf.Const.REPEAT : Gltf.Const.CLAMP_TO_EDGE,
           wrapT: normals[0].repeat ? Gltf.Const.REPEAT : Gltf.Const.CLAMP_TO_EDGE,
         }),

@@ -3,12 +3,13 @@ import { Gltf, GltfBuilder } from "../gltf";
 
 import { transpose } from "./utils";
 import { convertMaterial } from "./materials";
+import { Options } from "./options";
 
-export const convertParts = (mbx: Mbx.File, gltf: GltfBuilder): void => {
+export const convertParts = (mbx: Mbx.File, gltf: GltfBuilder, options: Options): void => {
   const partNodeIndices: Gltf.Index<Gltf.Node>[] = [];
 
   for (const [partIndex, part] of mbx.parts.entries()) {
-    partNodeIndices.push(convertPart(`/parts/${partIndex}.json`, part, mbx, gltf));
+    partNodeIndices.push(convertPart(`/parts/${partIndex}.json`, part, mbx, gltf, options));
   }
 
   gltf.setMainScene(
@@ -22,12 +23,19 @@ const convertPart = (
   path: string,
   part: Mbx.Part,
   mbx: Mbx.File,
-  gltf: GltfBuilder
+  gltf: GltfBuilder,
+  options: Options
 ): Gltf.Index<Gltf.Node> => {
   const config = mbx.configurations[part.version][part.configuration]!;
 
-  const materialIndex = convertMaterial(part.material.base[0], config.normals, gltf);
-  const node = convertConfiguration(path, config, materialIndex, mbx, gltf);
+  const materialIndex = convertMaterial(
+    part.material.base[0],
+    config.normals,
+    part.material.decoration,
+    gltf,
+    options
+  );
+  const node = convertConfiguration(path, config, materialIndex, mbx, gltf, options);
 
   return gltf.addNode(node.name!, {
     ...node,
@@ -40,11 +48,14 @@ const convertConfiguration = (
   config: Mbx.Configuration,
   materialIndex: Gltf.Index<Gltf.Material> | undefined,
   mbx: Mbx.File,
-  gltf: GltfBuilder
+  gltf: GltfBuilder,
+  options: Options
 ): Gltf.Node => {
   const extraNodeIndices: Gltf.Index<Gltf.Node>[] = [];
 
   for (const [kind, extras] of Object.entries(config.geometry.extras)) {
+    if (kind === "logos" && !options.logos) continue;
+
     for (const [index, extra] of extras.entries()) {
       const { node, mesh } = convertExtra(partPath, kind, index, extra, materialIndex, mbx, gltf);
 

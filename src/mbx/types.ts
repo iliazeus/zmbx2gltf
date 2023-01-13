@@ -44,6 +44,22 @@ export namespace Mbx {
     };
   }
 
+  export interface PartDecoration {
+    uv?: number;
+    color?: {
+      id: number;
+      name: string;
+      realanme: string;
+      exists: boolean;
+      scope: "official" | "custom";
+      type: "color";
+      filesize: number;
+      height: number;
+      width: number;
+      path: string;
+    };
+  }
+
   export interface Configuration {
     type: "part" | "solid";
     version: number;
