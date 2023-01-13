@@ -3,7 +3,7 @@ import { Gltf, GltfBuilder } from "../gltf";
 
 import { toDataUri } from "./utils";
 
-import * as assert from "assert/strict";
+import * as assert from "assert";
 
 export const convertGeometries = (mbx: Mbx.File, gltf: GltfBuilder): void => {
   for (const [index, geometry] of Object.entries(mbx.details.logos)) {

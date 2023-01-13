@@ -2,10 +2,19 @@
   "name": "zmbx2gltf",
   "version": "0.1.0",
   "description": "A tool to convert MecaBricks .zmbx models to GlTF",
+  "keywords": [
+    "zmbx",
+    "gltf",
+    "lego",
+    "mecabricks"
+  ],
+  "main": "./dist/index.js",
   "bin": "./dist/main.js",
   "scripts": {
+    "watch": "tsc --watch",
+    "start": "node ./dist/main.js",
     "build": "tsc",
-    "start": "node ./dist/main.js"
+    "bundle": "tsc && browserify ./dist/index.js -o ./zmbx2gltf.bundle.js"
   },
   "repository": {
     "type": "git",
@@ -25,6 +34,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "browserify": "^17.0.0",
     "jszip": "^3.10.1"
   }
 }
