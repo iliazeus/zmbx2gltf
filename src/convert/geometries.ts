@@ -3,7 +3,7 @@ import { Gltf, GltfBuilder } from "../gltf";
 
 import { toDataUri } from "./utils";
 
-import * as assert from "assert";
+import { Vertex, getVertices } from "./vertices";
 
 export const convertGeometries = (mbx: Mbx.File, gltf: GltfBuilder): void => {
   for (const [index, geometry] of Object.entries(mbx.details.logos)) {
@@ -30,120 +30,63 @@ export const convertGeometries = (mbx: Mbx.File, gltf: GltfBuilder): void => {
 };
 
 const convertGeometry = (path: string, geom: Mbx.Geometry, gltf: GltfBuilder): void => {
-  const headFlags = {
-    isQuad: Boolean(geom.faces[0] & Mbx.FaceFlags.QUAD),
-    hasMaterial: Boolean(geom.faces[0] & Mbx.FaceFlags.MATERIALS),
-    hasUvs: Boolean(geom.faces[0] & Mbx.FaceFlags.UVS),
-    hasNormals: Boolean(geom.faces[0] & Mbx.FaceFlags.NORMALS),
-    hasColors: Boolean(geom.faces[0] & Mbx.FaceFlags.COLORS),
-  };
+  const hashVertex: (v: Vertex) => string = (v) => JSON.stringify(v); // good enough for prototype
+  const indicesByHash = new Map<string, number>();
+
+  let nextIndex = 0;
 
   const indices: number[] = [];
-  const positions = new Float32Array(geom.vertices);
-  const normals = headFlags.hasNormals ? new Float32Array(positions.length) : undefined;
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[][] = (geom.uvs ?? []).map(() => []);
 
   const uvLayerCount = geom.uvs?.length ?? 0;
 
-  let off = 0;
-  while (off < geom.faces.length) {
-    assert.equal(geom.faces[0] & ~Mbx.FaceFlags.QUAD, geom.faces[off] & ~Mbx.FaceFlags.QUAD);
+  for (const vertex of getVertices(geom.faces, uvLayerCount)) {
+    const vertexHash = hashVertex(vertex);
 
-    const flags = {
-      isQuad: Boolean(geom.faces[off] & Mbx.FaceFlags.QUAD),
-      hasMaterial: Boolean(geom.faces[off] & Mbx.FaceFlags.MATERIALS),
-      hasUvs: Boolean(geom.faces[off] & Mbx.FaceFlags.UVS),
-      hasNormals: Boolean(geom.faces[off] & Mbx.FaceFlags.NORMALS),
-      hasColors: Boolean(geom.faces[off] & Mbx.FaceFlags.COLORS),
-    };
+    const existingIndex = indicesByHash.get(vertexHash);
+    if (existingIndex !== undefined) {
+      indices.push(existingIndex);
+      continue;
+    }
 
-    if (flags.isQuad) {
-      off += 1;
+    const index = nextIndex++;
+    indices.push(index);
+    indicesByHash.set(vertexHash, index);
 
-      indices.push(geom.faces[off + 0], geom.faces[off + 1], geom.faces[off + 2]);
-      indices.push(geom.faces[off + 2], geom.faces[off + 3], geom.faces[off + 0]);
-      off += 4;
+    positions.push(geom.vertices[vertex.position * 3 + 0]);
+    positions.push(geom.vertices[vertex.position * 3 + 1]);
+    positions.push(geom.vertices[vertex.position * 3 + 2]);
 
-      if (flags.hasMaterial) {
-        off += 1;
-      }
+    for (let i = 0; i < uvLayerCount; i++) {
+      uvs[i].push(geom.uvs![i][vertex.uvs[i] * 2 + 0]);
+      uvs[i].push(geom.uvs![i][vertex.uvs[i] * 2 + 1]);
+    }
 
-      if (flags.hasUvs) {
-        off += 4 * uvLayerCount;
-      }
-
-      if (flags.hasNormals) {
-        normals![indices[indices.length - 6] * 3 + 0] = geom.normals[geom.faces[off + 0] * 3 + 0];
-        normals![indices[indices.length - 6] * 3 + 1] = geom.normals[geom.faces[off + 0] * 3 + 1];
-        normals![indices[indices.length - 6] * 3 + 2] = geom.normals[geom.faces[off + 0] * 3 + 2];
-        normals![indices[indices.length - 5] * 3 + 0] = geom.normals[geom.faces[off + 1] * 3 + 0];
-        normals![indices[indices.length - 5] * 3 + 1] = geom.normals[geom.faces[off + 1] * 3 + 1];
-        normals![indices[indices.length - 5] * 3 + 2] = geom.normals[geom.faces[off + 1] * 3 + 2];
-        normals![indices[indices.length - 4] * 3 + 0] = geom.normals[geom.faces[off + 2] * 3 + 0];
-        normals![indices[indices.length - 4] * 3 + 1] = geom.normals[geom.faces[off + 2] * 3 + 1];
-        normals![indices[indices.length - 4] * 3 + 2] = geom.normals[geom.faces[off + 2] * 3 + 2];
-
-        normals![indices[indices.length - 3] * 3 + 0] = geom.normals[geom.faces[off + 2] * 3 + 0];
-        normals![indices[indices.length - 3] * 3 + 1] = geom.normals[geom.faces[off + 2] * 3 + 1];
-        normals![indices[indices.length - 3] * 3 + 2] = geom.normals[geom.faces[off + 2] * 3 + 2];
-        normals![indices[indices.length - 2] * 3 + 0] = geom.normals[geom.faces[off + 3] * 3 + 0];
-        normals![indices[indices.length - 2] * 3 + 1] = geom.normals[geom.faces[off + 3] * 3 + 1];
-        normals![indices[indices.length - 2] * 3 + 2] = geom.normals[geom.faces[off + 3] * 3 + 2];
-        normals![indices[indices.length - 1] * 3 + 0] = geom.normals[geom.faces[off + 0] * 3 + 0];
-        normals![indices[indices.length - 1] * 3 + 1] = geom.normals[geom.faces[off + 0] * 3 + 1];
-        normals![indices[indices.length - 1] * 3 + 2] = geom.normals[geom.faces[off + 0] * 3 + 2];
-
-        off += 4;
-      }
-
-      if (flags.hasColors) {
-        off += 4;
-      }
-    } else {
-      off += 1;
-
-      indices.push(geom.faces[off + 0], geom.faces[off + 1], geom.faces[off + 2]);
-      off += 3;
-
-      if (flags.hasMaterial) {
-        off += 1;
-      }
-
-      if (flags.hasUvs) {
-        off += 3 * uvLayerCount;
-      }
-
-      if (flags.hasNormals) {
-        normals![indices[indices.length - 3] * 3 + 0] = geom.normals[geom.faces[off + 0] * 3 + 0];
-        normals![indices[indices.length - 3] * 3 + 1] = geom.normals[geom.faces[off + 0] * 3 + 1];
-        normals![indices[indices.length - 3] * 3 + 2] = geom.normals[geom.faces[off + 0] * 3 + 2];
-        normals![indices[indices.length - 2] * 3 + 0] = geom.normals[geom.faces[off + 1] * 3 + 0];
-        normals![indices[indices.length - 2] * 3 + 1] = geom.normals[geom.faces[off + 1] * 3 + 1];
-        normals![indices[indices.length - 2] * 3 + 2] = geom.normals[geom.faces[off + 1] * 3 + 2];
-        normals![indices[indices.length - 1] * 3 + 0] = geom.normals[geom.faces[off + 2] * 3 + 0];
-        normals![indices[indices.length - 1] * 3 + 1] = geom.normals[geom.faces[off + 2] * 3 + 1];
-        normals![indices[indices.length - 1] * 3 + 2] = geom.normals[geom.faces[off + 2] * 3 + 2];
-        off += 3;
-      }
-
-      if (flags.hasColors) {
-        off += 3;
-      }
+    if (vertex.flags & Mbx.FaceFlags.NORMALS) {
+      normals.push(geom.normals[vertex.normal * 3 + 0]);
+      normals.push(geom.normals[vertex.normal * 3 + 1]);
+      normals.push(geom.normals[vertex.normal * 3 + 2]);
     }
   }
 
-  const indicesArray = new Uint16Array(indices);
+  const indicesArray = indices.length < 255 ? new Uint8Array(indices) : new Uint16Array(indices);
+  const positionsArray = new Float32Array(positions);
+  const normalsArray = new Float32Array(normals);
+  const uvArrays = uvs.map((layer) => new Float32Array(layer));
 
-  const positionMin = [positions[0], positions[1], positions[2]];
-  const positionMax = [positions[0], positions[1], positions[2]];
+  const positionMin = [positionsArray[0], positionsArray[1], positionsArray[2]];
+  const positionMax = [positionsArray[0], positionsArray[1], positionsArray[2]];
 
   for (let i = 0; i < positions.length; i += 3) {
-    positionMin[0] = Math.min(positionMin[0], positions[i + 0]);
-    positionMin[1] = Math.min(positionMin[1], positions[i + 1]);
-    positionMin[2] = Math.min(positionMin[2], positions[i + 2]);
+    positionMin[0] = Math.min(positionMin[0], positionsArray[i + 0]);
+    positionMin[1] = Math.min(positionMin[1], positionsArray[i + 1]);
+    positionMin[2] = Math.min(positionMin[2], positionsArray[i + 2]);
 
-    positionMax[0] = Math.max(positionMax[0], positions[i + 0]);
-    positionMax[1] = Math.max(positionMax[1], positions[i + 1]);
-    positionMax[2] = Math.max(positionMax[2], positions[i + 2]);
+    positionMax[0] = Math.max(positionMax[0], positionsArray[i + 0]);
+    positionMax[1] = Math.max(positionMax[1], positionsArray[i + 1]);
+    positionMax[2] = Math.max(positionMax[2], positionsArray[i + 2]);
   }
 
   gltf.addAccessor(path + "#indices", {
@@ -151,7 +94,7 @@ const convertGeometry = (path: string, geom: Mbx.Geometry, gltf: GltfBuilder): v
     byteOffset: 0,
     count: indicesArray.length,
     type: "SCALAR",
-    componentType: Gltf.Const.U16,
+    componentType: indicesArray instanceof Uint8Array ? Gltf.Const.U8 : Gltf.Const.U16,
 
     bufferView: gltf.addBufferView(path + "#indices", {
       name: path + "#indices",
@@ -170,7 +113,7 @@ const convertGeometry = (path: string, geom: Mbx.Geometry, gltf: GltfBuilder): v
   gltf.addAccessor(path + "#positions", {
     name: path + "#positions",
     byteOffset: 0,
-    count: positions.length / 3,
+    count: positionsArray.length / 3,
     type: "VEC3",
     componentType: Gltf.Const.F32,
     min: positionMin,
@@ -179,13 +122,13 @@ const convertGeometry = (path: string, geom: Mbx.Geometry, gltf: GltfBuilder): v
     bufferView: gltf.addBufferView(path + "#positions", {
       name: path + "#positions",
       byteOffset: 0,
-      byteLength: positions.byteLength,
+      byteLength: positionsArray.byteLength,
       target: Gltf.Const.ARRAY_BUFFER,
 
       buffer: gltf.addBuffer(path + "#positions", {
         name: path + "#positions",
-        byteLength: positions.byteLength,
-        uri: toDataUri("application/octet-stream", positions),
+        byteLength: positionsArray.byteLength,
+        uri: toDataUri("application/octet-stream", positionsArray),
       }),
     }),
   });
@@ -194,20 +137,43 @@ const convertGeometry = (path: string, geom: Mbx.Geometry, gltf: GltfBuilder): v
     gltf.addAccessor(path + "#normals", {
       name: path + "#normals",
       byteOffset: 0,
-      count: normals.length / 3,
+      count: normalsArray.length / 3,
       type: "VEC3",
       componentType: Gltf.Const.F32,
 
       bufferView: gltf.addBufferView(path + "#normals", {
         name: path + "#normals",
         byteOffset: 0,
-        byteLength: normals.byteLength,
+        byteLength: normalsArray.byteLength,
         target: Gltf.Const.ARRAY_BUFFER,
 
         buffer: gltf.addBuffer(path + "#normals", {
           name: path + "#normals",
-          byteLength: normals.byteLength,
-          uri: toDataUri("application/octet-stream", normals),
+          byteLength: normalsArray.byteLength,
+          uri: toDataUri("application/octet-stream", normalsArray),
+        }),
+      }),
+    });
+  }
+
+  for (const [i, uvLayerArray] of uvArrays.entries()) {
+    gltf.addAccessor(path + `#uvs/${i}`, {
+      name: path + `#uvs/${i}`,
+      byteOffset: 0,
+      count: uvLayerArray.length / 2,
+      type: "VEC2",
+      componentType: Gltf.Const.F32,
+
+      bufferView: gltf.addBufferView(path + `#uvs/${i}`, {
+        name: path + `#uvs/${i}`,
+        byteOffset: 0,
+        byteLength: uvLayerArray.byteLength,
+        target: Gltf.Const.ARRAY_BUFFER,
+
+        buffer: gltf.addBuffer(path + `#uvs/${i}`, {
+          name: path + `#uvs/${i}`,
+          byteLength: uvLayerArray.byteLength,
+          uri: toDataUri("application/octet-stream", uvLayerArray),
         }),
       }),
     });

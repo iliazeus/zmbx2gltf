@@ -105,7 +105,7 @@ export namespace Mbx {
 
   export const enum FaceFlags {
     QUAD = 0x01,
-    MATERIALS = 0x02,
+    MATERIAL = 0x02,
     UVS = 0x08,
     NORMALS = 0x20,
     COLORS = 0x80,

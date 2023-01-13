@@ -22,6 +22,8 @@ export class GltfBuilder {
   private _nodeIndices!: Map<string, number>;
   private _sceneIndices!: Map<string, number>;
   private _materialIndices!: Map<string, number>;
+  private _textureIndices!: Map<string, number>;
+  private _samplerIndices!: Map<string, number>;
 
   constructor() {
     this.reset();
@@ -38,6 +40,8 @@ export class GltfBuilder {
     this._nodeIndices = new Map();
     this._sceneIndices = new Map();
     this._materialIndices = new Map();
+    this._textureIndices = new Map();
+    this._samplerIndices = new Map();
   }
 
   build(): Gltf.File {
@@ -160,6 +164,30 @@ export class GltfBuilder {
     const index = this._file.materials.length;
     setStrict(this._materialIndices, key, index);
     this._file.materials.push(material);
+    return index;
+  }
+
+  getTextureIndex(key: string): Gltf.Index<Gltf.Texture> {
+    return getStrict(this._textureIndices, key);
+  }
+
+  addTexture(key: string, texture: Gltf.Texture): Gltf.Index<Gltf.Texture> {
+    this._file.textures ??= [];
+    const index = this._file.textures.length;
+    setStrict(this._textureIndices, key, index);
+    this._file.textures.push(texture);
+    return index;
+  }
+
+  getSamplerIndex(key: string): Gltf.Index<Gltf.Sampler> {
+    return getStrict(this._samplerIndices, key);
+  }
+
+  addSampler(key: string, sampler: Gltf.Sampler): Gltf.Index<Gltf.Sampler> {
+    this._file.samplers ??= [];
+    const index = this._file.samplers.length;
+    setStrict(this._samplerIndices, key, index);
+    this._file.samplers.push(sampler);
     return index;
   }
 }

@@ -24,10 +24,10 @@ const convertPart = (
   mbx: Mbx.File,
   gltf: GltfBuilder
 ): Gltf.Index<Gltf.Node> => {
-  const materialIndex = convertMaterial(part.material.base[0], gltf);
-
   const config = mbx.configurations[part.version][part.configuration]!;
-  const node = convertConfiguration(path, config, materialIndex, gltf);
+
+  const materialIndex = convertMaterial(part.material.base[0], config.normals, gltf);
+  const node = convertConfiguration(path, config, materialIndex, mbx, gltf);
 
   return gltf.addNode(node.name!, {
     ...node,
@@ -39,13 +39,14 @@ const convertConfiguration = (
   partPath: string,
   config: Mbx.Configuration,
   materialIndex: Gltf.Index<Gltf.Material> | undefined,
+  mbx: Mbx.File,
   gltf: GltfBuilder
 ): Gltf.Node => {
   const extraNodeIndices: Gltf.Index<Gltf.Node>[] = [];
 
   for (const [kind, extras] of Object.entries(config.geometry.extras)) {
     for (const [index, extra] of extras.entries()) {
-      const { node, mesh } = convertExtra(partPath, kind, index, extra, materialIndex, gltf);
+      const { node, mesh } = convertExtra(partPath, kind, index, extra, materialIndex, mbx, gltf);
 
       extraNodeIndices.push(
         gltf.addNode(node.name!, {
@@ -57,6 +58,14 @@ const convertConfiguration = (
   }
 
   const mainGeometryPath = `/geometries/${config.geometry.file}`;
+  const mainGeometry = mbx.geometries[config.version][config.geometry.file];
+
+  const uvLayerCount = mainGeometry.uvs?.length ?? 0;
+  const uvs: Partial<Record<Gltf.PrimitiveAttributeName, Gltf.Index<Gltf.Accessor>>> = {};
+
+  for (let i = 0; i < uvLayerCount; i++) {
+    uvs[`TEXCOORD_${i}`] = gltf.getAccessorIndex(`${mainGeometryPath}#uvs/${i}`);
+  }
 
   return {
     name: partPath + "#main",
@@ -70,6 +79,7 @@ const convertConfiguration = (
           attributes: {
             POSITION: gltf.getAccessorIndex(mainGeometryPath + "#positions"),
             NORMAL: gltf.tryGetAccessorIndex(mainGeometryPath + "#normals"),
+            ...uvs,
           },
         },
       ],
@@ -83,27 +93,40 @@ const convertExtra = (
   index: number,
   extra: Mbx.ConfigurationExtra,
   materialIndex: Gltf.Index<Gltf.Material> | undefined,
+  mbx: Mbx.File,
   gltf: GltfBuilder
 ): {
   node: Gltf.Node;
   mesh: Gltf.Mesh;
-} => ({
-  node: {
-    name: partPath + `#extra/${kind}/${index}`,
-    translation: extra.transform.position,
-    rotation: extra.transform.quaternion,
-  },
-  mesh: {
-    name: partPath + `#extra/${kind}/${index}`,
-    primitives: [
-      {
-        material: materialIndex,
-        indices: gltf.getAccessorIndex(`/details/${kind}/${extra.type}.json#indices`),
-        attributes: {
-          POSITION: gltf.getAccessorIndex(`/details/${kind}/${extra.type}.json#positions`),
-          NORMAL: gltf.tryGetAccessorIndex(`/details/${kind}/${extra.type}.json#normals`),
+} => {
+  const extraGeometry = (mbx.details as any)[kind][extra.type] as Mbx.Geometry;
+
+  const uvLayerCount = extraGeometry.uvs?.length ?? 0;
+  const uvs: Partial<Record<Gltf.PrimitiveAttributeName, Gltf.Index<Gltf.Accessor>>> = {};
+
+  for (let i = 0; i < uvLayerCount; i++) {
+    uvs[`TEXCOORD_${i}`] = gltf.getAccessorIndex(`/details/${kind}/${extra.type}.json#uvs/${i}`);
+  }
+
+  return {
+    node: {
+      name: partPath + `#extra/${kind}/${index}`,
+      translation: extra.transform.position,
+      rotation: extra.transform.quaternion,
+    },
+    mesh: {
+      name: partPath + `#extra/${kind}/${index}`,
+      primitives: [
+        {
+          material: materialIndex,
+          indices: gltf.getAccessorIndex(`/details/${kind}/${extra.type}.json#indices`),
+          attributes: {
+            POSITION: gltf.getAccessorIndex(`/details/${kind}/${extra.type}.json#positions`),
+            NORMAL: gltf.tryGetAccessorIndex(`/details/${kind}/${extra.type}.json#normals`),
+            ...uvs,
+          },
         },
-      },
-    ],
-  },
-});
+      ],
+    },
+  };
+};
