@@ -4,7 +4,14 @@ export * from "./convert";
 
 import { convertMbxToGltf, convertZmbxToGltf } from "./convert";
 
+declare global {
+  interface Window {
+    convertMbxToGltf: typeof convertMbxToGltf;
+    convertZmbxToGltf: typeof convertZmbxToGltf;
+  }
+}
+
 if (typeof window !== "undefined") {
-  (window as any).convertMbxToGltf = convertMbxToGltf;
-  (window as any).convertZmbxToGltf = convertZmbxToGltf;
+  window.convertMbxToGltf = convertMbxToGltf;
+  window.convertZmbxToGltf = convertZmbxToGltf;
 }
