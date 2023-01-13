@@ -1,7 +1,7 @@
 {
   "name": "zmbx2gltf",
   "version": "0.1.0",
-  "description": "A tool to convert MecaBricks .zmbx models to GlTF",
+  "description": "A tool and a library to convert MecaBricks .zmbx models to GlTF",
   "keywords": [
     "zmbx",
     "gltf",
