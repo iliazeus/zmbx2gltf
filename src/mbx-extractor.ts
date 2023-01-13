@@ -4,33 +4,21 @@ export class MbxExtractor {
   constructor(readonly file: Mbx.File) {}
 
   *getTextures(): Iterable<[string, Mbx.Base64String]> {
-    for (const [index, pack] of Object.entries(this.file.textures)) {
-      for (const [name, data] of Object.entries(pack.decoration ?? {})) {
-        yield [`#/textures/${index}/decoration/${name}`, data];
+    for (const [kind, dict] of Object.entries(this.file.textures["1"] ?? {})) {
+      for (const [name, data] of Object.entries<string>(dict)) {
+        yield [`#/textures/1/${kind}/${name}`, data];
       }
-      for (const [name, data] of Object.entries(pack.bump ?? {})) {
-        yield [`#/textures/${index}/bump/${name}`, data];
+    }
+
+    for (const [kind, dict] of Object.entries(this.file.textures["2"]?.official ?? {})) {
+      for (const [name, data] of Object.entries<string>(dict)) {
+        yield [`#/textures/2/official/${kind}/${name}`, data];
       }
-      for (const [name, data] of Object.entries(pack.metalness ?? {})) {
-        yield [`#/textures/${index}/metalness/${name}`, data];
-      }
-      for (const [name, data] of Object.entries(pack.normal ?? {})) {
-        yield [`#/textures/${index}/normal/${name}`, data];
-      }
-      for (const [name, data] of Object.entries(pack.mask ?? {})) {
-        yield [`#/textures/${index}/mask/${name}`, data];
-      }
-      for (const [name, data] of Object.entries(pack.color ?? {})) {
-        yield [`#/textures/${index}/color/${name}`, data];
-      }
-      for (const [name, data] of Object.entries(pack.data ?? {})) {
-        yield [`#/textures/${index}/data/${name}`, data];
-      }
-      for (const [name, data] of Object.entries(pack.custom?.color ?? {})) {
-        yield [`#/textures/${index}/custom/color/${name}`, data];
-      }
-      for (const [name, data] of Object.entries(pack.custom?.data ?? {})) {
-        yield [`#/textures/${index}/custom/data/${name}`, data];
+    }
+
+    for (const [kind, dict] of Object.entries(this.file.textures["2"]?.custom ?? {})) {
+      for (const [name, data] of Object.entries<string>(dict)) {
+        yield [`#/textures/2/custom/${kind}/${name}`, data];
       }
     }
   }

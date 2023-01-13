@@ -12,7 +12,10 @@ export namespace Mbx {
     parts: Part[];
     configurations: { [index: string]: { [name: string]: Configuration } };
     geometries: { [index: string]: { [name: string]: Geometry } };
-    textures: { [index: string]: TexturePack };
+    textures: {
+      "1"?: TexturePack;
+      "2"?: { official: TexturePack; custom: TexturePack };
+    };
     details: {
       logos: { [index: string]: Geometry };
       knobs: { [index: string]: Geometry };
@@ -138,10 +141,5 @@ export namespace Mbx {
     mask?: { [name: string]: Base64String };
     color?: { [name: string]: Base64String };
     data?: { [name: string]: Base64String };
-
-    custom?: {
-      color?: { [name: string]: Base64String };
-      data?: { [name: string]: Base64String };
-    };
   }
 }

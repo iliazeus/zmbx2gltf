@@ -6,8 +6,10 @@ import { GltfBuilder } from "./gltf-builder";
 
 import * as assert from "assert/strict";
 
-const arrayToDataUri = (mime: string, array: { buffer: ArrayBufferLike }): string =>
-  `data:${mime};base64,${Buffer.from(array.buffer).toString("base64")}`;
+const toDataUri = (mime: string, data: string | { buffer: ArrayBufferLike }): string => {
+  if (typeof data === "string") return `data:${mime};base64,${data}`;
+  return `data:${mime};base64,${Buffer.from(data.buffer).toString("base64")}`;
+};
 
 // prettier-ignore
 const transpose = (m: Gltf.Matrix4x4) => [
@@ -135,6 +137,13 @@ export function convertMbxToGltf(
   const extractor = new MbxExtractor(mbx);
   const builder = new GltfBuilder();
 
+  for (const [path, base64] of extractor.getTextures()) {
+    builder.addImage(path, {
+      name: path,
+      uri: toDataUri("image/png", base64),
+    });
+  }
+
   for (let [path, geometry] of extractor.getGeometries()) {
     const { indicesArray, positionsArray, normalsArray } = convertGeometry(geometry);
 
@@ -171,7 +180,7 @@ export function convertMbxToGltf(
               buffer: builder.addBuffer(path + "/faces", {
                 name: path + "/faces",
                 byteLength: indicesArray.byteLength,
-                uri: arrayToDataUri("application/octet-stream", indicesArray),
+                uri: toDataUri("application/octet-stream", indicesArray),
               }),
             }),
           }),
@@ -195,7 +204,7 @@ export function convertMbxToGltf(
                 buffer: builder.addBuffer(path + "/vertices", {
                   name: path + "/vertices",
                   byteLength: positionsArray.byteLength,
-                  uri: arrayToDataUri("application/octet-stream", positionsArray),
+                  uri: toDataUri("application/octet-stream", positionsArray),
                 }),
               }),
             }),
@@ -218,7 +227,7 @@ export function convertMbxToGltf(
                   buffer: builder.addBuffer(path + "/normals", {
                     name: path + "/normals",
                     byteLength: normalsArray.byteLength,
-                    uri: arrayToDataUri("application/octet-stream", normalsArray),
+                    uri: toDataUri("application/octet-stream", normalsArray),
                   }),
                 }),
               }),
