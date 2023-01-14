@@ -16,43 +16,73 @@ const memberRef = <O, K extends keyof O>(o: O, k: K): Ref<O[K]> => ({
   debug: () => console.log(o),
 });
 
+const collectUnused = <T>(
+  arrayRef: Ref<T[] | undefined>,
+  indexRefs: () => Iterable<Ref<number | undefined>>
+): void => {
+  const array = arrayRef.get();
+  if (!array) return;
+
+  const used = new Set<number>();
+  for (const ref of indexRefs()) {
+    const value = ref.get();
+    if (value !== undefined) used.add(value);
+  }
+
+  if (used.size === 0) {
+    arrayRef.set(undefined);
+    return;
+  }
+
+  const indexMap = new Map<number, number>();
+  let i = 0;
+  for (const u of used) indexMap.set(u, i++);
+
+  for (const ref of indexRefs()) {
+    const index = ref.get();
+    if (index !== undefined) ref.set(indexMap.get(index));
+  }
+
+  const newArray = array.slice(0, indexMap.size);
+  for (const [oldIndex, newIndex] of indexMap) {
+    newArray[newIndex] = array[oldIndex];
+  }
+
+  arrayRef.set(newArray);
+};
+
+const dedup = <T, H>(
+  arrayRef: Ref<T[] | undefined>,
+  hashFn: (t: T) => H,
+  indexRefs: () => Iterable<Ref<number | undefined>>
+): void => {
+  const array = arrayRef.get();
+  if (!array) return;
+
+  const indexMap = new Map<number, number>();
+  const hashMap = new Map<H, number>();
+
+  for (const [index, value] of array.entries()) {
+    const hash = hashFn(value);
+    const existingIndex = hashMap.get(hash);
+
+    if (existingIndex !== undefined) {
+      indexMap.set(index, existingIndex);
+    } else {
+      hashMap.set(hash, index);
+    }
+  }
+
+  for (const ref of indexRefs()) {
+    const index = ref.get();
+    if (index !== undefined) ref.set(indexMap.get(index) ?? index);
+  }
+
+  collectUnused(arrayRef, indexRefs);
+};
+
 export class GltfOptimizer {
   constructor(readonly file: Gltf.File) {}
-
-  private _collectUnused<T>(
-    arrayRef: Ref<T[] | undefined>,
-    indexRefs: () => Iterable<Ref<number | undefined>>
-  ): void {
-    const array = arrayRef.get();
-    if (!array) return;
-
-    const used = new Set<number>();
-    for (const ref of indexRefs()) {
-      const value = ref.get();
-      if (value !== undefined) used.add(value);
-    }
-
-    if (used.size === 0) {
-      arrayRef.set(undefined);
-      return;
-    }
-
-    const indexMap = new Map<number, number>();
-    let i = 0;
-    for (const u of used) indexMap.set(u, i++);
-
-    for (const ref of indexRefs()) {
-      const value = ref.get();
-      if (value !== undefined) ref.set(indexMap.get(value));
-    }
-
-    const newArray = array.slice(0, indexMap.size);
-    for (const [oldIndex, newIndex] of indexMap) {
-      newArray[newIndex] = array[oldIndex];
-    }
-
-    arrayRef.set(newArray);
-  }
 
   private *_textureIndexRefs(): Iterable<Ref<Gltf.Index<Gltf.Texture>>> {
     for (const m of this.file.materials ?? []) {
@@ -115,19 +145,7 @@ export class GltfOptimizer {
     }
   }
 
-  removeUnusedTextures(): void {
-    this._collectUnused(memberRef(this.file, "textures"), () => this._textureIndexRefs());
-  }
-
-  removeUnusedSamplers(): void {
-    this._collectUnused(memberRef(this.file, "samplers"), () => this._samplerIndexRefs());
-  }
-
-  removeUnusedImages(): void {
-    this._collectUnused(memberRef(this.file, "images"), () => this._imageIndexRefs());
-  }
-
-  removeUnusedTexCoords(): void {
+  private _collectUnusedTexCoords(): void {
     for (const mesh of this.file.meshes ?? []) {
       for (const prim of mesh.primitives) {
         const mat = prim.material ? this.file.materials?.[prim.material] : undefined;
@@ -153,15 +171,59 @@ export class GltfOptimizer {
     }
   }
 
-  removeUnusedAccessors(): void {
-    this._collectUnused(memberRef(this.file, "accessors"), () => this._accessorIndexRefs());
+  collectUnused(targets: {
+    textures: boolean;
+    samplers: boolean;
+    images: boolean;
+    texCoords: boolean;
+    accessors: boolean;
+    bufferViews: boolean;
+    buffers: boolean;
+  }): void {
+    // the order is important: top-to-bottom
+    /* prettier-ignore */ {
+      if (targets.textures)
+        collectUnused(memberRef(this.file, "textures"), () => this._textureIndexRefs());
+      if (targets.samplers)
+        collectUnused(memberRef(this.file, "samplers"), () => this._samplerIndexRefs());
+      if (targets.images)
+        collectUnused(memberRef(this.file, "images"), () => this._imageIndexRefs());
+      if (targets.texCoords)
+        this._collectUnusedTexCoords();
+      if (targets.accessors)
+        collectUnused(memberRef(this.file, "accessors"), () => this._accessorIndexRefs());
+      if (targets.bufferViews)
+        collectUnused(memberRef(this.file, "bufferViews"), () => this._bufferViewIndexRefs());
+      if (targets.buffers)
+        collectUnused(memberRef(this.file, "buffers"), () => this._bufferIndexRefs());
+    }
   }
 
-  removeUnusedBufferViews(): void {
-    this._collectUnused(memberRef(this.file, "bufferViews"), () => this._bufferViewIndexRefs());
-  }
+  deduplicate(targets: {
+    buffers: boolean;
+    bufferViews: boolean;
+    accessors: boolean;
+    images: boolean;
+    samplers: boolean;
+    textures: boolean;
+  }): void {
+    const hashFn = <T extends { name?: string }>({ name, ...rest }: T) => JSON.stringify(rest);
 
-  removeUnusedBuffers(): void {
-    this._collectUnused(memberRef(this.file, "buffers"), () => this._bufferIndexRefs());
+    // the order is important: bottom-to-top
+    // TODO: more optimal hash functions?
+    /* prettier-ignore */ {
+      if (targets.buffers)
+        dedup(memberRef(this.file, "buffers"), hashFn, () => this._bufferIndexRefs());
+      if (targets.bufferViews)
+        dedup(memberRef(this.file, "bufferViews"), hashFn, () => this._bufferViewIndexRefs());
+      if (targets.accessors)
+        dedup(memberRef(this.file, "accessors"), hashFn, () => this._accessorIndexRefs());
+      if (targets.images)
+        dedup(memberRef(this.file, "images"), hashFn, () => this._imageIndexRefs());
+      if (targets.samplers)
+        dedup(memberRef(this.file, "samplers"), hashFn, () => this._samplerIndexRefs());
+      if (targets.textures)
+        dedup(memberRef(this.file, "textures"), hashFn, () => this._textureIndexRefs());
+    }
   }
 }

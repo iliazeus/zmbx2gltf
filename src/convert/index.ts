@@ -28,12 +28,25 @@ export const convertMbxToGltf = (mbx: Mbx.File, options?: Partial<Options>): Glt
   if (!fullOptions.optimize) return gltf;
 
   const optimizer = new GltfOptimizer(gltf);
-  optimizer.removeUnusedTextures();
-  optimizer.removeUnusedSamplers();
-  optimizer.removeUnusedImages();
-  optimizer.removeUnusedTexCoords();
-  optimizer.removeUnusedAccessors();
-  optimizer.removeUnusedBufferViews();
-  optimizer.removeUnusedBuffers();
+
+  optimizer.collectUnused({
+    textures: true,
+    samplers: true,
+    images: true,
+    texCoords: true,
+    accessors: true,
+    bufferViews: true,
+    buffers: true,
+  });
+
+  optimizer.deduplicate({
+    buffers: true,
+    bufferViews: true,
+    accessors: true,
+    images: true,
+    samplers: true,
+    textures: true,
+  });
+
   return optimizer.file;
 };
