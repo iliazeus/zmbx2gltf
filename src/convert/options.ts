@@ -3,6 +3,7 @@ export interface Options {
   normalMaps: boolean;
   bumpMaps: boolean;
   decals: boolean;
+  optimize: boolean;
 }
 
 export const getDefaultOptions = (): Options => ({
@@ -10,4 +11,5 @@ export const getDefaultOptions = (): Options => ({
   normalMaps: false,
   bumpMaps: false,
   decals: false,
+  optimize: true,
 });

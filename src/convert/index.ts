@@ -1,5 +1,5 @@
 import { Mbx } from "../mbx";
-import { Gltf, GltfBuilder } from "../gltf";
+import { Gltf, GltfBuilder, GltfOptimizer } from "../gltf";
 
 import { convertFile } from "./file";
 
@@ -20,7 +20,20 @@ export const convertZmbxToGltf = async (
 
 export const convertMbxToGltf = (mbx: Mbx.File, options?: Partial<Options>): Gltf.File => {
   const fullOptions = { ...getDefaultOptions(), ...options };
+
   const builder = new GltfBuilder();
   convertFile(mbx, builder, fullOptions);
-  return builder.build();
+  const gltf = builder.build();
+
+  if (!fullOptions.optimize) return gltf;
+
+  const optimizer = new GltfOptimizer(gltf);
+  optimizer.removeUnusedTextures();
+  optimizer.removeUnusedSamplers();
+  optimizer.removeUnusedImages();
+  optimizer.removeUnusedTexCoords();
+  optimizer.removeUnusedAccessors();
+  optimizer.removeUnusedBufferViews();
+  optimizer.removeUnusedBuffers();
+  return optimizer.file;
 };
