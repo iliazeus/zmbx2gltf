@@ -1,19 +1,21 @@
 import { Gltf } from "./types";
 
-const addIfPresent = <T>(set: Set<T>, value: T | undefined): void => {
-  if (value !== undefined) set.add(value);
-};
-
 interface Ref<T> {
   get(): T;
   set(value: T): T;
-  debug(): void;
 }
 
 const memberRef = <O, K extends keyof O>(o: O, k: K): Ref<O[K]> => ({
   get: () => o[k],
   set: (v) => (o[k] = v),
-  debug: () => console.log(o),
+});
+
+const maybeMemberRef = <T, K extends keyof any, O extends Partial<Record<K, T>>>(
+  o: O | undefined,
+  k: K
+): Ref<O[K] | undefined> => ({
+  get: () => o?.[k],
+  set: (v) => (o ? (o[k] = v!) : v),
 });
 
 const collectUnused = <T>(
@@ -25,8 +27,8 @@ const collectUnused = <T>(
 
   const used = new Set<number>();
   for (const ref of indexRefs()) {
-    const value = ref.get();
-    if (value !== undefined) used.add(value);
+    const index = ref.get();
+    if (index !== undefined) used.add(index);
   }
 
   if (used.size === 0) {
@@ -150,22 +152,36 @@ export class GltfOptimizer {
       for (const prim of mesh.primitives) {
         const mat = prim.material ? this.file.materials?.[prim.material] : undefined;
 
-        const usedTexCoords = new Set();
+        const refs = [
+          maybeMemberRef(mat?.emissiveTexture, "texCoord"),
+          maybeMemberRef(mat?.normalTexture, "texCoord"),
+          maybeMemberRef(mat?.occlusionTexture, "texCoord"),
+          maybeMemberRef(mat?.pbrMetallicRoughness?.baseColorTexture, "texCoord"),
+          maybeMemberRef(mat?.pbrMetallicRoughness?.metallicTexture, "texCoord"),
+          maybeMemberRef(mat?.pbrMetallicRoughness?.roughnessTexture, "texCoord"),
+        ];
 
-        addIfPresent(usedTexCoords, mat?.emissiveTexture?.texCoord);
-        addIfPresent(usedTexCoords, mat?.normalTexture?.texCoord);
-        addIfPresent(usedTexCoords, mat?.occlusionTexture?.texCoord);
+        const used = new Set<number>();
+        for (const ref of refs) {
+          const index = ref.get();
+          if (index !== undefined) used.add(index);
+        }
 
-        addIfPresent(usedTexCoords, mat?.pbrMetallicRoughness?.baseColorTexture?.texCoord);
-        addIfPresent(usedTexCoords, mat?.pbrMetallicRoughness?.metallicTexture?.texCoord);
-        addIfPresent(usedTexCoords, mat?.pbrMetallicRoughness?.roughnessTexture?.texCoord);
+        const indexMap = new Map<number, number>();
+        let i = 0;
+        for (const u of used) indexMap.set(u, i++);
 
-        const usedTexCoordAttrs = new Set([...usedTexCoords].map((n) => `TEXCOORD_${n}`));
+        for (const ref of refs) {
+          const index = ref.get();
+          if (index !== undefined) ref.set(indexMap.get(index));
+        }
 
-        for (const attr in prim.attributes) {
-          if (attr.startsWith("TEXCOORD_") && !usedTexCoordAttrs.has(attr)) {
-            delete prim.attributes[attr as any];
-          }
+        for (const [oldIndex, newIndex] of indexMap) {
+          prim.attributes[`TEXCOORD_${newIndex}`] = prim.attributes[`TEXCOORD_${oldIndex}`];
+        }
+
+        for (let i = used.size; `TEXCOORD_${i}` in prim.attributes; i++) {
+          delete prim.attributes[`TEXCOORD_${i}`];
         }
       }
     }
