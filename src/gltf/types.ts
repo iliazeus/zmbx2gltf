@@ -100,6 +100,7 @@ export namespace Gltf {
     count: number;
     type: DataType;
     componentType: ComponentType;
+    normalized?: boolean;
     max?: number[];
     min?: number[];
     sparse?: {

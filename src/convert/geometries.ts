@@ -64,7 +64,7 @@ const convertGeometry = (path: string, geom: Mbx.Geometry, gltf: GltfBuilder): v
 
     for (let i = 0; i < uvLayerCount; i++) {
       uvs[i].push(geom.uvs![i][vertex.uvs[i] * 2 + 0]);
-      uvs[i].push(-1 * geom.uvs![i][vertex.uvs[i] * 2 + 1]);
+      uvs[i].push(1 - geom.uvs![i][vertex.uvs[i] * 2 + 1]);
     }
 
     if (vertex.flags & Mbx.FaceFlags.NORMALS) {

@@ -16,10 +16,7 @@ const main = async (args: string[]) => {
 
   const input = await readFile(inputFile);
 
-  const output = await convertZmbxToGltf(input, {
-    logos: false,
-    normalMaps: false,
-  });
+  const output = await convertZmbxToGltf(input);
 
   await writeFile(outputFile, JSON.stringify(output), "utf-8");
 };

@@ -1,4 +1,5 @@
 import * as uuid from "uuid";
+import { PNG } from "pngjs";
 
 import { Gltf, GltfBuilder } from "../gltf";
 import { Mbx } from "../mbx";
@@ -73,13 +74,34 @@ export const convertMaterial = (
   if (!material) return undefined;
 
   if (options.decals && decoration.uv && decoration.color) {
-    delete material.pbrMetallicRoughness!.baseColorFactor;
+    const baseColor = material.pbrMetallicRoughness!.baseColorFactor!;
+
+    const imageData = Buffer.from(
+      gltf.getImage(`/textures/color/${decoration.color.name}`).uri!.split(",")[1],
+      "base64"
+    );
+
+    const png = PNG.sync.read(imageData);
+
+    for (let off = 0; off < png.data.length; off += 4) {
+      const alpha = png.data[off + 3] / 255;
+
+      png.data[off + 0] = Math.round(png.data[off + 0] * alpha + 255 * baseColor[0] * (1 - alpha));
+      png.data[off + 1] = Math.round(png.data[off + 1] * alpha + 255 * baseColor[1] * (1 - alpha));
+      png.data[off + 2] = Math.round(png.data[off + 2] * alpha + 255 * baseColor[2] * (1 - alpha));
+      png.data[off + 3] = Math.round(255 * baseColor[3]);
+    }
+
+    const newTextureDataUri = "data:image/png;base64," + PNG.sync.write(png).toString("base64");
 
     material.pbrMetallicRoughness!.baseColorTexture = {
       texCoord: decoration.uv,
       index: gltf.addTexture(key + "#color", {
         name: key + "#color",
-        source: gltf.getImageIndex(`/textures/color/${decoration.color.name}`),
+        source: gltf.addImage(key + "#color", {
+          name: key + "#color",
+          uri: newTextureDataUri,
+        }),
         sampler: gltf.addSampler(key + "#color", {
           name: key + "#color",
           wrapS: Gltf.Const.CLAMP_TO_EDGE,

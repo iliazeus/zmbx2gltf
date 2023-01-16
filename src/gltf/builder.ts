@@ -67,6 +67,11 @@ export class GltfBuilder {
     return getStrict(this._imageIndices, key);
   }
 
+  getImage(key: string): Gltf.Image {
+    const index = getStrict(this._imageIndices, key);
+    return this._file.images![index];
+  }
+
   addImage(key: string, image: Gltf.Image): Gltf.Index<Gltf.Image> {
     this._file.images ??= [];
     const index = this._file.images.length;

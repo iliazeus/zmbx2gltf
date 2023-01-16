@@ -10,6 +10,6 @@ export const getDefaultOptions = (): Options => ({
   logos: false,
   normalMaps: false,
   bumpMaps: false,
-  decals: false,
+  decals: true,
   optimize: true,
 });
