@@ -2,30 +2,41 @@ import { Mbx } from "../mbx";
 import { Gltf, GltfBuilder, GltfOptimizer } from "../gltf";
 
 import { convertFile } from "./file";
+import { Dependencies, Options, createContext } from "./context";
 
-import * as jszip from "jszip";
-import { Options, getDefaultOptions } from "./options";
+export { Dependencies, Options } from "./context";
 
-export { Options } from "./options";
+export const convertZmbxToGltf = async (args: {
+  zmbx: Uint8Array | Blob | ArrayBuffer;
+  options?: Options;
+  dependencies?: Dependencies;
+}): Promise<Gltf.File> => {
+  const ctx = await createContext(args);
 
-export const convertZmbxToGltf = async (
-  zmbx: Uint8Array | Blob | ArrayBuffer,
-  options?: Partial<Options>
-): Promise<Gltf.File> => {
-  const zip = await jszip.loadAsync(zmbx);
+  if (!ctx.dependencies.jszip) {
+    throw new Error("jszip is required to work with zmbx");
+  }
+
+  const zip = await ctx.dependencies.jszip.loadAsync(args.zmbx);
+
   const mbx = await zip.file("scene.mbx")?.async("string");
   if (!mbx) throw new Error("invalid file format");
-  return convertMbxToGltf(JSON.parse(mbx), options);
+
+  return convertMbxToGltf({ mbx: JSON.parse(mbx), ...ctx });
 };
 
-export const convertMbxToGltf = (mbx: Mbx.File, options?: Partial<Options>): Gltf.File => {
-  const fullOptions = { ...getDefaultOptions(), ...options };
+export const convertMbxToGltf = async (args: {
+  mbx: Mbx.File;
+  options?: Options;
+  dependencies?: Dependencies;
+}): Promise<Gltf.File> => {
+  const ctx = await createContext(args);
 
   const builder = new GltfBuilder();
-  convertFile(mbx, builder, fullOptions);
+  await convertFile(args.mbx, builder, ctx);
   const gltf = builder.build();
 
-  if (!fullOptions.optimize) return gltf;
+  if (!ctx.options.optimize) return gltf;
 
   const optimizer = new GltfOptimizer(gltf);
 

@@ -1,40 +1,54 @@
 import { GltfBuilder } from "../gltf";
 import { Mbx } from "../mbx";
-import { Options } from "./options";
+
+import { Context } from "./context";
 import { toDataUri } from "./utils";
 
-export const convertTextures = (mbx: Mbx.File, gltf: GltfBuilder, options: Options): void => {
+export const convertTextures = async (
+  mbx: Mbx.File,
+  gltf: GltfBuilder,
+  ctx: Context
+): Promise<void> => {
   for (const [kind, textures] of Object.entries(mbx.textures["1"] ?? {})) {
-    if (kind === "color" && !options.decals) continue;
-    if (kind === "bump" && !options.bumpMaps) continue;
-    if (kind === "normal" && !options.normalMaps) continue;
+    if (kind === "color" && !ctx.options.decals) continue;
+    if (kind === "bump" && !ctx.options.bumpMaps) continue;
+    if (kind === "normal" && !ctx.options.normalMaps) continue;
 
     for (const [name, texture] of Object.entries<string>(textures)) {
-      convertTexture(`/textures/${kind}/${name}`, texture, gltf);
+      await convertTexture(`/textures/${kind}/${name}`, texture, gltf, ctx);
     }
   }
 
   for (const [kind, textures] of Object.entries(mbx.textures["2"]?.official ?? {})) {
-    if (kind === "color" && !options.decals) continue;
-    if (kind === "bump" && !options.bumpMaps) continue;
-    if (kind === "normal" && !options.normalMaps) continue;
+    if (kind === "color" && !ctx.options.decals) continue;
+    if (kind === "bump" && !ctx.options.bumpMaps) continue;
+    if (kind === "normal" && !ctx.options.normalMaps) continue;
 
     for (const [name, texture] of Object.entries<string>(textures)) {
-      convertTexture(`/textures/${kind}/${name}`, texture, gltf);
+      await convertTexture(`/textures/${kind}/${name}`, texture, gltf, ctx);
     }
   }
 
   for (const [kind, textures] of Object.entries(mbx.textures["2"]?.custom ?? {})) {
-    if (kind === "color" && !options.decals) continue;
-    if (kind === "bump" && !options.bumpMaps) continue;
-    if (kind === "normal" && !options.normalMaps) continue;
+    if (kind === "color" && !ctx.options.decals) continue;
+    if (kind === "bump" && !ctx.options.bumpMaps) continue;
+    if (kind === "normal" && !ctx.options.normalMaps) continue;
 
     for (const [name, texture] of Object.entries<string>(textures)) {
-      convertTexture(`/textures/${kind}/${name}`, texture, gltf);
+      await convertTexture(`/textures/${kind}/${name}`, texture, gltf, ctx);
     }
   }
 };
 
-const convertTexture = (path: string, texture: Mbx.Base64String, gltf: GltfBuilder): void => {
-  gltf.addImage(path, { name: path, uri: toDataUri("image/png", texture) });
+const convertTexture = async (
+  path: string,
+  texture: Mbx.Base64String,
+  gltf: GltfBuilder,
+  ctx: Context
+): Promise<void> => {
+  const jimp = ctx.dependencies.jimp!;
+
+  const jimpImage = await jimp.read(Buffer.from(texture, "base64"));
+  const dataUri = await jimpImage.flip(false, true).getBase64Async("image/png");
+  gltf.addImage(path, { name: path, uri: dataUri });
 };

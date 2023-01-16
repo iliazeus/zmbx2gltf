@@ -1,13 +1,13 @@
 import { Mbx } from "../mbx";
 import { Gltf, GltfBuilder } from "../gltf";
 
+import { Context } from "./context";
 import { toDataUri } from "./utils";
 
 import { Vertex, getVertices } from "./vertices";
-import { Options } from "./options";
 
-export const convertGeometries = (mbx: Mbx.File, gltf: GltfBuilder, options: Options): void => {
-  if (options.logos) {
+export const convertGeometries = (mbx: Mbx.File, gltf: GltfBuilder, ctx: Context): void => {
+  if (ctx.options.logos) {
     for (const [index, geometry] of Object.entries(mbx.details.logos)) {
       convertGeometry(`/details/logos/${index}.json`, geometry, gltf);
     }
@@ -64,7 +64,7 @@ const convertGeometry = (path: string, geom: Mbx.Geometry, gltf: GltfBuilder): v
 
     for (let i = 0; i < uvLayerCount; i++) {
       uvs[i].push(geom.uvs![i][vertex.uvs[i] * 2 + 0]);
-      uvs[i].push(-1 * geom.uvs![i][vertex.uvs[i] * 2 + 1]);
+      uvs[i].push(geom.uvs![i][vertex.uvs[i] * 2 + 1]);
     }
 
     if (vertex.flags & Mbx.FaceFlags.NORMALS) {

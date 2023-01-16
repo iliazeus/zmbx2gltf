@@ -1,23 +1,24 @@
 import * as uuid from "uuid";
 
-import { Gltf, GltfBuilder } from "../gltf";
 import { Mbx } from "../mbx";
-import { colors } from "./data/colors";
-import { Options } from "./options";
+import { Gltf, GltfBuilder } from "../gltf";
 
-export const convertMaterial = (
+import { Context } from "./context";
+import { colors } from "./data/colors";
+
+export const convertMaterial = async (
   id: number,
   normals: Mbx.TextureRef[] | undefined,
   decoration: Mbx.PartDecoration | undefined,
   gltf: GltfBuilder,
-  options: Options
-): Gltf.Index<Gltf.Material> | undefined => {
+  ctx: Context
+): Promise<Gltf.Index<Gltf.Material> | undefined> => {
   normals ??= [];
   decoration ??= {};
 
   const isSimple =
-    (!options.normalMaps || normals.length === 0) &&
-    (!options.decals || Object.keys(decoration).length === 0);
+    (!ctx.options.normalMaps || normals.length === 0) &&
+    (!ctx.options.decals || Object.keys(decoration).length === 0);
 
   const key = `/materials/${isSimple ? id : uuid.v4()}`;
 
@@ -72,24 +73,47 @@ export const convertMaterial = (
 
   if (!material) return undefined;
 
-  if (options.decals && decoration.uv && decoration.color) {
+  if (ctx.options.decals && decoration.uv && decoration.color) {
+    const jimp = ctx.dependencies.jimp;
+    if (!jimp) throw new Error("jimp is required for decal support");
+
+    const gltfColor = material.pbrMetallicRoughness!.baseColorFactor!;
+    const byteColor = gltfColor.map((x) => Math.round(x * 255));
+
+    const gltfImage = gltf.getImage(`/textures/color/${decoration.color.name}`);
+    const jimpImage = await jimp.read(Buffer.from(gltfImage.uri!.split(",")[1], "base64"));
+
+    const bitmap = jimpImage.bitmap.data;
+    for (let i = 0; i < bitmap.length; i++) {
+      const alpha = bitmap[i * 4 + 3] / 255;
+      bitmap[i * 4 + 0] = Math.round(bitmap[i * 4 + 0] * alpha + byteColor[0] * (1 - alpha));
+      bitmap[i * 4 + 1] = Math.round(bitmap[i * 4 + 1] * alpha + byteColor[1] * (1 - alpha));
+      bitmap[i * 4 + 2] = Math.round(bitmap[i * 4 + 2] * alpha + byteColor[2] * (1 - alpha));
+      bitmap[i * 4 + 3] = 0xff;
+    }
+
+    const newDataUri = await jimpImage.getBase64Async("image/png");
+
     delete material.pbrMetallicRoughness!.baseColorFactor;
 
     material.pbrMetallicRoughness!.baseColorTexture = {
       texCoord: decoration.uv,
       index: gltf.addTexture(key + "#color", {
         name: key + "#color",
-        source: gltf.getImageIndex(`/textures/color/${decoration.color.name}`),
+        source: gltf.addImage(key + "#color", {
+          name: key + "#color",
+          uri: newDataUri,
+        }),
         sampler: gltf.addSampler(key + "#color", {
           name: key + "#color",
-          wrapS: Gltf.Const.CLAMP_TO_EDGE,
-          wrapT: Gltf.Const.CLAMP_TO_EDGE,
+          wrapS: Gltf.Const.REPEAT,
+          wrapT: Gltf.Const.REPEAT,
         }),
       }),
     };
   }
 
-  if (options.normalMaps && normals[0]) {
+  if (ctx.options.normalMaps && normals[0]) {
     material.normalTexture = {
       texCoord: normals[0].uv,
       index: gltf.addTexture(key + "#normals", {

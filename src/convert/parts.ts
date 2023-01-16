@@ -1,15 +1,20 @@
 import { Mbx } from "../mbx";
 import { Gltf, GltfBuilder } from "../gltf";
 
+import { Context } from "./context";
 import { transpose } from "./utils";
-import { convertMaterial } from "./materials";
-import { Options } from "./options";
 
-export const convertParts = (mbx: Mbx.File, gltf: GltfBuilder, options: Options): void => {
+import { convertMaterial } from "./materials";
+
+export const convertParts = async (
+  mbx: Mbx.File,
+  gltf: GltfBuilder,
+  ctx: Context
+): Promise<void> => {
   const partNodeIndices: Gltf.Index<Gltf.Node>[] = [];
 
   for (const [partIndex, part] of mbx.parts.entries()) {
-    partNodeIndices.push(convertPart(`/parts/${partIndex}.json`, part, mbx, gltf, options));
+    partNodeIndices.push(await convertPart(`/parts/${partIndex}.json`, part, mbx, gltf, ctx));
   }
 
   gltf.setMainScene(
@@ -19,23 +24,23 @@ export const convertParts = (mbx: Mbx.File, gltf: GltfBuilder, options: Options)
   );
 };
 
-const convertPart = (
+const convertPart = async (
   path: string,
   part: Mbx.Part,
   mbx: Mbx.File,
   gltf: GltfBuilder,
-  options: Options
-): Gltf.Index<Gltf.Node> => {
+  ctx: Context
+): Promise<Gltf.Index<Gltf.Node>> => {
   const config = mbx.configurations[part.version][part.configuration]!;
 
-  const materialIndex = convertMaterial(
+  const materialIndex = await convertMaterial(
     part.material.base[0],
     config.normals,
     part.material.decoration,
     gltf,
-    options
+    ctx
   );
-  const node = convertConfiguration(path, config, materialIndex, mbx, gltf, options);
+  const node = convertConfiguration(path, config, materialIndex, mbx, gltf, ctx);
 
   return gltf.addNode(node.name!, {
     ...node,
@@ -49,12 +54,12 @@ const convertConfiguration = (
   materialIndex: Gltf.Index<Gltf.Material> | undefined,
   mbx: Mbx.File,
   gltf: GltfBuilder,
-  options: Options
+  ctx: Context
 ): Gltf.Node => {
   const extraNodeIndices: Gltf.Index<Gltf.Node>[] = [];
 
   for (const [kind, extras] of Object.entries(config.geometry.extras)) {
-    if (kind === "logos" && !options.logos) continue;
+    if (kind === "logos" && !ctx.options.logos) continue;
 
     for (const [index, extra] of extras.entries()) {
       const { node, mesh } = convertExtra(partPath, kind, index, extra, materialIndex, mbx, gltf);
