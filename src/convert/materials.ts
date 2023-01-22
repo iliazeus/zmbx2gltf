@@ -1,4 +1,3 @@
-import * as uuid from "uuid";
 import { PNG } from "pngjs";
 
 import { Gltf, GltfBuilder } from "../gltf";
@@ -20,7 +19,7 @@ export const convertMaterial = (
     (!options.normalMaps || normals.length === 0) &&
     (!options.decals || Object.keys(decoration).length === 0);
 
-  const key = `/materials/${isSimple ? id : uuid.v4()}`;
+  const key = `/materials/${isSimple ? id : Math.random()}`;
 
   if (isSimple && gltf.hasMaterial(key)) return gltf.getMaterialIndex(key);
 
