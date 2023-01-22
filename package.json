@@ -14,6 +14,7 @@
     "watch": "tsc --watch",
     "start": "node ./dist/main.js",
     "build": "tsc",
+    "build:qjs": "tsc && browserify ./dist/index.js -o ./zmbx2gltf.bundle.js && qjs/build.sh",
     "bundle": "tsc && browserify ./dist/index.js -o ./zmbx2gltf.bundle.js"
   },
   "repository": {
