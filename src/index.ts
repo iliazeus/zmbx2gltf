@@ -2,16 +2,15 @@ export * from "./mbx";
 export * from "./gltf";
 export * from "./convert";
 
-import { convertMbxToGltf, convertZmbxToGltf } from "./convert";
+import {
+  convertMbxToGltf as _convertMbxToGltf,
+  convertZmbxToGltf as _convertZmbxToGltf,
+} from "./convert";
 
 declare global {
-  interface Window {
-    convertMbxToGltf: typeof convertMbxToGltf;
-    convertZmbxToGltf: typeof convertZmbxToGltf;
-  }
+  const convertMbxToGltf: typeof _convertMbxToGltf;
+  const convertZmbxToGltf: typeof _convertZmbxToGltf;
 }
 
-if (typeof window !== "undefined") {
-  window.convertMbxToGltf = convertMbxToGltf;
-  window.convertZmbxToGltf = convertZmbxToGltf;
-}
+(globalThis as any).convertMbxToGltf = _convertMbxToGltf;
+(globalThis as any).convertZmbxToGltf = _convertZmbxToGltf;
