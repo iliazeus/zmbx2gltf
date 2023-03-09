@@ -23,5 +23,4 @@ zmbx2gltf <input.zmbx> <output.gltf>
 
 ## Browser usage
 
-Global `convertZmbxToGltf` and `convertMbxToGltf` functions.
-They're global because I couldn't be bothered.
+Global `Zmbx2Gltf.convertZmbxToGltf` and `Zmbx2Gltf.convertMbxToGltf` functions.

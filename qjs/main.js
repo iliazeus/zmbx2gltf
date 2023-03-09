@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync } from "../../../lib/fs/index.js";
 globalThis.setTimeout = os.setTimeout;
 globalThis.clearTimeout = os.clearTimeout;
 
-import "../zmbx2gltf.bundle.js";
+import "../zmbx2gltf.bundle.mjs";
 
 program.name("zmbx2gltf");
 program.version("0.1.6");
