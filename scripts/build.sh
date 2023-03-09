@@ -7,6 +7,7 @@ tsc
 
 esbuild \
   --bundle --sourcemap=inline --minify --charset=utf8 \
+  --alias:stream="stream-browserify" \
   --alias:zlib="browserify-zlib" \
   --inject:./src/shims.ts \
   --format=iife --global-name=Zmbx2Gltf \
@@ -16,6 +17,7 @@ esbuild \
 esbuild \
   --bundle --sourcemap=inline --minify --charset=utf8 \
   --inject:./src/shims.ts \
+  --alias:stream="stream-browserify" \
   --alias:zlib="browserify-zlib" \
   --format=esm \
   --outfile=./zmbx2gltf.bundle.mjs \
