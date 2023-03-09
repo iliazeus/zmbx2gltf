@@ -1,5 +1,11 @@
 *.bundle.js
+*.bundle.mjs
 *.gltf
 *.zmbx
 *.mbx
 *.tgz
+/qjs
+/src
+/scripts
+.prettierrc
+tsconfig.json
